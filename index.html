@@ -10257,7 +10257,7 @@ function generateReport(){
                 _ingQty+=zr*zAc;
               });
               _ingQty*=_ingVrtScale;
-            } else { var _isFoIng=(ing.unit||'').toLowerCase().includes('fl oz'); _ingQty=_isFoIng?0:getFPRate(fp,ing)*fAc; }
+            } else { _ingQty=getFPRate(fp,ing)*fAc; }
             if(!totals[key])totals[key]={name,unit:ing.unit,type:pr.type,rate:getFPRate(fp,ing),acres:0,qty:0,cost:0,fields:[],hasVrt:!!(_ingVrtR&&Object.keys(_ingVrtR).length)};
             totals[key].acres+=fAc; totals[key].qty+=_ingQty;
             totals[key].cost+=(+(ing.cu||0))*getFPRate(fp,ing)*fAc; totals[key].fields.push(f.name);
