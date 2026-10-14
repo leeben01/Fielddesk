@@ -50,6 +50,19 @@ body{font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:var(--ink);back
 #seasonSel{background:transparent;border:none;color:#F0ECD8;font-size:13px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;outline:none;padding-right:16px;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23BF8820'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center;}
 .s-add{background:none;border:1px solid var(--sage);color:var(--sage);border-radius:4px;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
 .s-add:hover{background:var(--sage);color:var(--forest);}
+.s-lock{background:none;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.6);border-radius:4px;height:20px;padding:0 6px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .12s;white-space:nowrap;}
+.s-lock:hover{border-color:var(--gold);color:var(--gold);}
+.s-lock.on{background:rgba(220,162,40,.18);border-color:var(--gold);color:var(--gold);}
+#seasonLockBanner{display:none;align-items:center;gap:10px;padding:6px 14px;background:rgba(220,162,40,.14);border-bottom:1px solid rgba(220,162,40,.45);color:var(--gold);font-size:12px;flex-shrink:0;}
+#seasonLockBanner.show{display:flex;}
+#seasonLockBanner{height:31px;box-sizing:border-box;}
+body.season-locked #ws{height:calc(100vh - var(--top) - 31px);}
+#seasonLockBanner button{margin-left:auto;}
+.fd-ro-note{font-size:11px;color:var(--gold);background:rgba(220,162,40,.1);border:1px solid rgba(220,162,40,.35);border-radius:var(--r);padding:6px 9px;margin-bottom:8px;}
+.ac-edit{width:72px;padding:2px 5px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;border:1px solid var(--rule);border-radius:4px;background:var(--fog);color:var(--ink);text-align:right;}
+.ac-edit:focus{outline:none;border-color:var(--gold);}
+.mp-ac-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:6px 0 2px;}
+
 
 .gSearch{position:relative;flex:1;max-width:280px;}
 .gSearch input{width:100%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:6px;padding:6px 10px 6px 28px;color:#F0ECD8;font-size:12px;outline:none;transition:all .14s;}
@@ -492,6 +505,7 @@ textarea.fc{resize:vertical;min-height:58px;}
     <span class="sl">Season</span>
     <select id="seasonSel" onchange="onSeasonChange()"></select>
     <button class="s-add" onclick="addSeason()">＋</button>
+    <button class="s-lock" id="seasonLockBtn" onclick="toggleSeasonLock()" title="Lock / unlock this season">🔓</button>
   </div>
   <div class="gSearch">
     <span class="si">⌕</span>
@@ -514,6 +528,7 @@ textarea.fc{resize:vertical;min-height:58px;}
   </div>
 </div>
 
+<div id="seasonLockBanner"><span>🔒</span><span id="seasonLockBannerTxt"></span><button class="btn btn-xs btn-og" onclick="toggleSeasonLock()">Unlock for corrections</button></div>
 <!-- ═══ WORKSPACE ═══ -->
 <div id="ws">
   <!-- SIDEBAR -->
@@ -622,7 +637,7 @@ textarea.fc{resize:vertical;min-height:58px;}
           </div>
         </div>
         <input type="file" id="shpMapFile" accept=".zip" style="display:none" onchange="handleShpMap(event)">
-        <input type="file" id="shpSingleFieldFile" accept=".zip" style="display:none" onchange="handleSingleFieldBorder(event)">
+        <input type="file" id="shpSingleFieldFile" accept=".zip,.geojson,.json" style="display:none" onchange="handleSingleFieldBorder(event)">
         <button class="map-btn" id="btnFinishSplit" onclick="finishSplitMode();cancelTool(true);" style="display:none;background:rgba(0,200,80,.15);color:#80EE80;border-color:rgba(0,200,80,.4)">&#x2714; Done Zones</button>
         <span id="mapActiveHint" style="font-size:11px;color:rgba(255,255,200,.85);flex:1;text-align:center;display:none;padding:0 8px"></span>
         <button class="map-btn active" id="btnCancelTool" onclick="cancelTool()" style="display:none">&#x2715; Esc / Cancel</button>
@@ -1322,6 +1337,7 @@ textarea.fc{resize:vertical;min-height:58px;}
       <div id="asgn-scope-planting-wrap" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:6px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Select plantings to include</div>
         <div id="asgn-planting-list"></div>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--rule2);font-size:11.5px;cursor:pointer" title="Each planting gets its own Planned/Applied status — e.g. soybean stubble spread this fall, corn stalks later"><input type="checkbox" id="asgn-separate"> Track each planting as its own application</label>
       </div>
       <div id="asgn-scope-area-wrap" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:6px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Treatment Area</div>
@@ -1413,15 +1429,25 @@ textarea.fc{resize:vertical;min-height:58px;}
   <input type="hidden" id="pdfvrt-mode" value="zone">
 </div></div>
 
-<div class="ov" id="ov-singleborder"><div class="modal" style="max-width:540px;width:92vw">
-  <div class="mh"><div class="mh-t">&#x1F4E5; Import Boundary for <span id="sb-fieldname"></span></div><button class="mx" onclick="closeM('singleborder')">&#x2715;</button></div>
+<div class="ov" id="ov-singleborder"><div class="modal" style="max-width:600px;width:94vw">
+  <div class="mh"><div class="mh-t">&#x1F4E5; Boundary from File — <span id="sb-fieldname"></span></div><button class="mx" onclick="_eqbClearPreview();closeM('singleborder')">&#x2715;</button></div>
   <div class="mb" style="padding:0">
-    <div style="padding:10px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--rule2)">Select which feature from the file to use as this field&#x27;s boundary. All existing field data (programs, notes, VRT rates) is preserved.</div>
+    <div style="padding:10px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--rule2);line-height:1.5">
+      From <strong id="sb-srcfile" style="color:var(--ink)"></strong> · applies to the <strong id="sb-season" style="color:var(--ink)"></strong> season · current boundary <strong id="sb-cur-ac" style="color:var(--ink)"></strong> ac.<br>
+      Equipment exports (John Deere Ops Center, Climate, AgLeader, Trimble…) work as a shapefile .zip or GeoJSON. Features overlapping this field are pre-selected; tick several to combine them. Locked seasons keep their old boundary.
+    </div>
+    <div style="padding:10px 14px;border-bottom:1px solid var(--rule2);display:flex;flex-direction:column;gap:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px">Use as
+        <select class="fc" id="sb-target" style="flex:1;font-size:12px" onchange="eqbUpdate()"></select></label>
+      <div id="sb-summary" style="font-family:'IBM Plex Mono',monospace;font-size:12px"></div>
+      <label id="sb-refit-wrap" style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="sb-refit" checked> Refit this season&#x27;s plantings to the new boundary</label>
+      <label id="sb-acres-wrap" style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="sb-keep-acres"> Keep current acres (don&#x27;t recalc from the new shape — e.g. FSA acres)</label>
+    </div>
     <div id="sb-feat-list" style="max-height:300px;overflow-y:auto"></div>
   </div>
   <div class="mf" style="justify-content:space-between">
-    <button class="btn btn-gh" onclick="closeM('singleborder')">Cancel</button>
-    <button class="btn btn-g" onclick="confirmSingleBorder()">&#x2713; Use This Boundary</button>
+    <button class="btn btn-gh" onclick="_eqbClearPreview();closeM('singleborder')">Cancel</button>
+    <button class="btn btn-g" onclick="confirmSingleBorder()">&#x2713; Apply</button>
   </div>
 </div></div>
 
@@ -2100,6 +2126,7 @@ function loadState(){
   if(!S.growers.length) seedData();
   _migratePlantings();
   _migrateTwinBinKeys();
+  _initSeasonLocks();
 }
 function _migratePlantings(){
   if(S._plantingsMigrated) return;
@@ -2125,7 +2152,7 @@ function _migratePlantings(){
     if(S.plantings.find(function(p){return p.fieldId===fs.fieldId&&p.season===fs.season;})) return;
     var f=S.fields.find(function(x){return x.id===fs.fieldId;});
     S.plantings.push({id:uid(),fieldId:fs.fieldId,season:fs.season,name:fs.crop,
-      crop:fs.crop,variety:fs.variety||'',acres:f?parseFloat((+f.acres).toFixed(1)):0,
+      crop:fs.crop,variety:fs.variety||'',acres:f?parseFloat((+fAc(f)).toFixed(1)):0,
       acresVerified:null,plantingDate:'',vrSeed:false,notes:'',geom:null,
       color:cropColor(fs.crop)||'#50A020',verified:false});
   });
@@ -2232,7 +2259,7 @@ function pushUndo(label){
   _syncUndoBtns();
 }
 function _restoreUndoSnap(snap){
-  try{ S=JSON.parse(snap.state); save(); renderAll();
+  try{ S=JSON.parse(snap.state); save(); try{updateSeasonLockUI();renderSeasons();}catch(e){} renderAll();
     if(curFid&&S.fields.find(x=>x.id===curFid)) renderFieldDetail(curFid);
     else{ curFid=null; const tf=document.getElementById('tab-field'); if(tf)tf.style.display='none'; }
   }catch(e){alert('Restore failed: '+e);}
@@ -2357,6 +2384,569 @@ function cropOptions(sel,includeBlank,includeUnknown){ const list=includeUnknown
 function getFS(fid,season){ return S.fieldSeasons.find(x=>x.fieldId===fid&&x.season===(season||S.curSeason))||null; }
 function ensureFS(fid,season){ let fs=getFS(fid,season||S.curSeason); if(!fs){fs={id:uid(),fieldId:fid,season:season||S.curSeason,crop:'',variety:'',tillage:'',targetYield:'',notes:''};S.fieldSeasons.push(fs);} return fs; }
 function getPlantings(fid,season){ return (S.plantings||[]).filter(function(p){return p.fieldId===fid&&p.season===(season||S.curSeason);}); }
+
+// ════════════════════════════════════════════════════════════════════
+//  v41: SEASON RECORDS
+//  • Past seasons can be locked as a permanent record of what was done.
+//  • Field boundaries + acres are season-aware. S.fieldGeoms / field.acres
+//    hold the LIVE boundary (newest season). When a boundary changes, the
+//    outgoing shape is preserved in S.seasonBounds[season][fieldId] for
+//    every older season that has data on that field, so last year's
+//    record keeps last year's boundary and acres.
+//  • Editing an older, unlocked season writes into that season's own
+//    S.seasonBounds entry and never touches the live boundary.
+// ════════════════════════════════════════════════════════════════════
+function _seasonNum(s){ return parseInt(s,10)||0; }
+function newestSeason(){
+  var ss=(S.seasons||[]);
+  if(!ss.length) return S.curSeason;
+  return ss.reduce(function(a,b){return _seasonNum(b)>_seasonNum(a)?b:a;});
+}
+function isSeasonLocked(s){ s=s||S.curSeason; return !!(S.seasonLocks&&S.seasonLocks[s]); }
+function _seasonOverride(fid,season){
+  var s=season||S.curSeason;
+  if(s===newestSeason()) return null;
+  var sb=S.seasonBounds&&S.seasonBounds[s];
+  return sb&&sb[fid]?sb[fid]:null;
+}
+// Season-aware field boundary (defaults to the season being viewed)
+function fGeom(fid,season){
+  var o=_seasonOverride(fid,season);
+  if(o) return o.geom||null;
+  return S.fieldGeoms[fid];
+}
+// Season-aware field acres (defaults to the season being viewed). Always a number.
+function fAc(f,season){
+  if(!f) return 0;
+  var o=_seasonOverride(f.id,season);
+  if(o&&o.acres!=null) return +o.acres||0;
+  return +f.acres||0;
+}
+function _fieldHasSeasonData(fid,s){
+  return (S.plantings||[]).some(function(p){return p.fieldId===fid&&p.season===s;})
+    ||(S.fieldSeasons||[]).some(function(x){return x.fieldId===fid&&x.season===s&&(x.crop||x.notes||x.variety);})
+    ||(S.fieldProgs||[]).some(function(x){return x.fieldId===fid&&x.season===s;});
+}
+// Which season a boundary edit lands in: the season being viewed, unless that
+// season is locked (then it can only change the live/newest boundary).
+function _boundaryTargetSeason(){
+  return isSeasonLocked(S.curSeason)?newestSeason():S.curSeason;
+}
+function _clone(o){ return o==null?o:JSON.parse(JSON.stringify(o)); }
+// Call BEFORE code writes S.fieldGeoms[fid] / field.acres. Returns a token for _fbEnd.
+function _fbBegin(fid){
+  var f=S.fields.find(function(x){return x.id===fid;});
+  var target=_boundaryTargetSeason();
+  var newest=newestSeason();
+  var bk={fid:fid,target:target,hadGeom:Object.prototype.hasOwnProperty.call(S.fieldGeoms,fid),
+    prevGeomJson:S.fieldGeoms[fid]?JSON.stringify(S.fieldGeoms[fid]):null,
+    prevAcres:f?f.acres:null,
+    seasonGeom:_clone(fGeom(fid,target)), seasonAcres:f?fAc(f,target):0};
+  S.seasonBounds=S.seasonBounds||{};
+  if(target===newest){
+    // Preserve the outgoing live boundary for every older season that used it
+    (S.seasons||[]).forEach(function(s){
+      if(s===newest||_seasonNum(s)>=_seasonNum(newest)) return;
+      var sb=S.seasonBounds[s]=S.seasonBounds[s]||{};
+      if(sb[fid]) return;
+      if(!_fieldHasSeasonData(fid,s)) return;
+      sb[fid]={geom:bk.prevGeomJson?JSON.parse(bk.prevGeomJson):null,acres:f?(+f.acres||0):0,savedAt:new Date().toISOString()};
+    });
+  }
+  return bk;
+}
+// Call AFTER the write. If the target season isn't the newest, the new shape/acres
+// are moved into that season's record and the live boundary is restored.
+function _fbEnd(bk){
+  if(!bk) return;
+  var fid=bk.fid, f=S.fields.find(function(x){return x.id===fid;});
+  if(bk.target===newestSeason()) return;
+  var nowJson=S.fieldGeoms[fid]?JSON.stringify(S.fieldGeoms[fid]):null;
+  var geomChanged=nowJson!==bk.prevGeomJson;
+  var acresChanged=f&&String(f.acres)!==String(bk.prevAcres);
+  if(!geomChanged&&!acresChanged) return;
+  S.seasonBounds=S.seasonBounds||{};
+  var sb=S.seasonBounds[bk.target]=S.seasonBounds[bk.target]||{};
+  sb[fid]={geom:geomChanged?(nowJson?JSON.parse(nowJson):null):bk.seasonGeom,
+    acres:acresChanged?(+f.acres||0):bk.seasonAcres,savedAt:new Date().toISOString()};
+  // Restore the live (newest-season) boundary untouched
+  if(bk.hadGeom&&bk.prevGeomJson) S.fieldGeoms[fid]=JSON.parse(bk.prevGeomJson);
+  else delete S.fieldGeoms[fid];
+  if(f) f.acres=bk.prevAcres;
+}
+// Convenience setter used by newer code paths
+function setFieldBoundary(fid,geom,acres){
+  var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return;
+  var bk=_fbBegin(fid);
+  if(geom!==undefined){ if(geom) S.fieldGeoms[fid]=geom; else delete S.fieldGeoms[fid]; }
+  if(acres!=null&&!isNaN(+acres)) f.acres=parseFloat((+acres).toFixed(1));
+  _fbEnd(bk);
+}
+function setFieldAcres(fid,acres){ setFieldBoundary(fid,undefined,acres); }
+function seasonBoundaryNote(fid){
+  var o=_seasonOverride(fid,S.curSeason);
+  if(!o) return '';
+  var f=S.fields.find(function(x){return x.id===fid;});
+  var live=f?(+f.acres||0):0;
+  var d=Math.abs((+o.acres||0)-live);
+  return d>0.05?(S.curSeason+' boundary · current boundary is '+live.toFixed(1)+' ac'):(S.curSeason+' boundary record');
+}
+
+// ── Season locks ──
+function _initSeasonLocks(){
+  S.seasonBounds=S.seasonBounds||{};
+  if(!S.seasonLocks){
+    S.seasonLocks={};
+    var newest=newestSeason();
+    (S.seasons||[]).forEach(function(s){ if(s!==newest&&_seasonNum(s)<_seasonNum(newest)) S.seasonLocks[s]=true; });
+  }
+}
+function updateSeasonLockUI(){
+  var locked=isSeasonLocked(S.curSeason);
+  var b=document.getElementById('seasonLockBtn');
+  if(b){ b.classList.toggle('on',locked); b.innerHTML=locked?'🔒 Locked':'🔓'; b.title=locked?(S.curSeason+' is locked — click to unlock for corrections'):('Lock '+S.curSeason+' as a finished record'); }
+  var bn=document.getElementById('seasonLockBanner');
+  var tx=document.getElementById('seasonLockBannerTxt');
+  if(bn){ bn.classList.toggle('show',locked); }
+  if(tx){ tx.textContent=S.curSeason+' is a locked record — plantings, boundaries, acres and applications are read-only. Switch to '+newestSeason()+' to keep working.'; }
+  document.body.classList.toggle('season-locked',locked);
+  try{ if(typeof map!=='undefined'&&map&&map.invalidateSize) setTimeout(function(){map.invalidateSize();},50); }catch(e){}
+}
+function toggleSeasonLock(){
+  var s=S.curSeason;
+  S.seasonLocks=S.seasonLocks||{};
+  if(isSeasonLocked(s)){
+    if(!confirm('Unlock '+s+' for corrections?\n\nChanges you make will rewrite the '+s+' record. Lock it again when you\'re done.')) return;
+    S.seasonLocks[s]=false;
+    fdToast('🔓 '+s+' unlocked for corrections');
+  } else {
+    if(!confirm('Lock '+s+' as a finished record?\n\nPlantings, boundaries, acres and applications for '+s+' become read-only. You can unlock it later if you need to correct something.')) return;
+    if(activeTool) try{cancelTool(true);}catch(e){}
+    S.seasonLocks[s]=true;
+    fdToast('🔒 '+s+' locked','success');
+  }
+  save(); updateSeasonLockUI(); renderAll();
+  if(curFid&&document.getElementById('mapPanel')&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(curFid);
+}
+function seasonEditable(silent){
+  if(!isSeasonLocked(S.curSeason)) return true;
+  if(!silent) fdToast('🔒 '+S.curSeason+' is locked. Use the lock button by the season picker to unlock it for corrections.','error');
+  return false;
+}
+// Wrap every function that edits season data so it refuses to run while the
+// season being viewed is locked. Installed once at init().
+var _SEASON_GUARDED=['saveZone','deleteZone','deletePlantingFromPanel','plantWholeField','startDrawPlanting','triggerPlantingShp',
+  'mergePlantings','startSliceMode','slicePlanting','editPlantingBoundary','startEditBoundary','startSplitMode','startCutHole',
+  'deleteBoundary','openFieldBorderImport','confirmSingleBorder','reconcileAcres','reconcileSave','carryForwardBorders',
+  'openMultiCrop','mcSave','copySeasonSplits','clearSeasonZones','openSeasonZoneModal','saveSliceGeoms','editTreatmentAreaBorder',
+  'deleteTreatmentArea','asgnDrawTreatmentArea','openAssign','assignProg','removeFP','toggleFPStatus','toggleFPScope','toggleLockFP',
+  'saveFieldRateOverride','clearFieldRateOverride','saveVrtRates','openApplyPicker','confirmApplyPicker','quickApply',
+  'quickApplyToGrower','openApplyAll','openApplyAllWith','confirmApplyAll','openRemoveAll','confirmRemoveAll','toggleProgOnPlanting',
+  'toggleProgOnField','applyProgramToSelected','showProgCropPicker','inlineCropSet','showCropPicker','openBulkCrop','confirmBulkCrop',
+  'bulkClearCrop','mapBulkSetCrop','saveFieldSeasonNotes','saveRx','deleteRx','delRxFromList','openRxForField',
+  'quickEditPlanting','splitFPByPlanting','editFieldAcresInline','refitPlantingsToField','openEquipBoundaryImport','openZoneModal_edit'];
+function _installSeasonGuards(){
+  if(window._seasonGuardsInstalled) return;
+  window._seasonGuardsInstalled=true;
+  _SEASON_GUARDED.forEach(function(n){
+    var fn=window[n]; if(typeof fn!=='function') return;
+    window[n]=function(){ if(!seasonEditable()) return; return fn.apply(this,arguments); };
+  });
+  // Map tools: drawing a NEW field / selecting is fine; reshaping season data is not
+  var _at=window.activateTool;
+  if(typeof _at==='function') window.activateTool=function(name){
+    if((name==='edit'||name==='split'||name==='slice')&&activeTool!==name&&!seasonEditable()) return;
+    return _at.apply(this,arguments);
+  };
+  // Program library: block edits to programs that belong to a locked season
+  var _sp=window.saveProg;
+  if(typeof _sp==='function') window.saveProg=function(){
+    var el=document.getElementById('prog-season'); var ps=el?el.value:'';
+    if(ps&&isSeasonLocked(ps)){ fdToast('🔒 '+ps+' is locked — unlock it to edit its programs.','error'); return; }
+    return _sp.apply(this,arguments);
+  };
+  var _dp=window.deleteProg;
+  if(typeof _dp==='function') window.deleteProg=function(id){
+    var pr=(S.programs||[]).find(function(p){return p.id===id;});
+    if(pr&&pr.season&&isSeasonLocked(pr.season)){ fdToast('🔒 '+pr.season+' is locked — unlock it to delete its programs.','error'); return; }
+    var lockedUse=(S.fieldProgs||[]).filter(function(fp){return fp.programId===id&&isSeasonLocked(fp.season);});
+    if(lockedUse.length){ var ys=[...new Set(lockedUse.map(function(fp){return fp.season;}))].join(', '); alert('This program is part of the locked record for '+ys+' ('+lockedUse.length+' field application'+(lockedUse.length>1?'s':'')+').\n\nDeleting it would erase those records. Unlock '+ys+' first if you really need to remove it.'); return; }
+    return _dp.apply(this,arguments);
+  };
+}
+// ════════════════════════════════════════════════════════════════════
+//  v41: BOUNDARY REFIT + EQUIPMENT IMPORT + QUICK PLANTING EDITS
+// ════════════════════════════════════════════════════════════════════
+function _feat(g){
+  if(!g) return null;
+  if(g.type==='Feature') return g;
+  if(g.type==='FeatureCollection') return (g.features&&g.features[0])||null;
+  return {type:'Feature',geometry:g,properties:{}};
+}
+function _r1(n){ return parseFloat((+n||0).toFixed(1)); }
+function _unionAll(feats){
+  var u=null;
+  feats.forEach(function(g){
+    var f=_feat(g); if(!f) return;
+    if(!u){u=f;return;}
+    try{ u=turf.union(u,f)||u; }catch(e){ console.warn('union failed',e); }
+  });
+  return u;
+}
+// Fit a season's plantings to the field boundary for that season.
+// • Single planting (or a planting that matched the whole old field) follows the new boundary.
+// • Drawn plantings are clipped to the new boundary; new ground the field gained is
+//   handed to whichever planting it borders most.
+// • Info-only plantings (no shape): the largest one absorbs the acre change, the rest keep what you typed.
+function _refitPlantings(fid,season,oldGeom){
+  var changes=[];
+  var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return changes;
+  var ps=(S.plantings||[]).filter(function(p){return p.fieldId===fid&&p.season===season;});
+  if(!ps.length) return changes;
+  var before={}; ps.forEach(function(p){before[p.id]=+p.acres||0;});
+  var newG=_feat(fGeom(fid,season));
+  var fieldAc=fAc(f,season);
+  var withG=ps.filter(function(p){return p.geom;}), noG=ps.filter(function(p){return !p.geom;});
+  var oldAc=oldGeom?acresFromGeojson(_feat(oldGeom)):0;
+  if(newG&&window.turf&&withG.length){
+    withG.forEach(function(p){
+      var pf=_feat(p.geom); var pAc=acresFromGeojson(pf);
+      var followsField=ps.length===1||(oldAc>0&&Math.abs(pAc-oldAc)/oldAc<0.01);
+      var ng=null;
+      if(followsField) ng=_clone(newG);
+      else { try{ ng=turf.intersect(pf,newG); }catch(e){ ng=null; } if(ng) ng=_cleanSlivers(ng,0.05); }
+      if(ng){ p.geom=_normGeom(ng)||p.geom; p.acres=_r1(acresFromGeojson(ng)); }
+      else { p.acres=0; p.notes=((p.notes||'')+' [outside current boundary]').trim(); }
+    });
+    // Hand newly gained ground to the neighbouring planting
+    if(withG.length>1&&!noG.length&&turf.difference){
+      try{
+        var u=_unionAll(withG.map(function(p){return p.geom;}));
+        var gap=u?turf.difference(newG,u):null;
+        if(gap){
+          var gg=gap.geometry||gap;
+          var pieces=gg.type==='MultiPolygon'?gg.coordinates.map(function(c){return {type:'Feature',geometry:{type:'Polygon',coordinates:c},properties:{}};}):[_feat(gg)];
+          // First pass: each planting claims the new ground nearest to it (within ~60 m)
+          var claimed=null, rest=[];
+          pieces.forEach(function(pc){
+            if(acresFromGeojson(pc)<0.1) return;
+            var left=pc;
+            withG.slice().sort(function(a,b){return (+b.acres||0)-(+a.acres||0);}).forEach(function(p){
+              if(!left) return;
+              try{
+                var reach=turf.buffer(_feat(p.geom),0.06,{units:'kilometers'});
+                var take=turf.intersect(left,reach);
+                if(take&&acresFromGeojson(take)>=0.05){
+                  var m=turf.union(_feat(p.geom),take); if(m){ p.geom=_normGeom(m)||p.geom; p.acres=_r1(acresFromGeojson(m)); }
+                  left=turf.difference(left,take);
+                }
+              }catch(e){}
+            });
+            if(left&&acresFromGeojson(left)>=0.1){
+              var lg=left.geometry||left;
+              (lg.type==='MultiPolygon'?lg.coordinates.map(function(c){return {type:'Feature',geometry:{type:'Polygon',coordinates:c},properties:{}};}):[_feat(lg)]).forEach(function(x){rest.push(x);});
+            }
+          });
+          // Anything farther away goes to the planting it borders most
+          rest.forEach(function(pc){
+            var pcAc=acresFromGeojson(pc); if(pcAc<0.1) return;
+            var best=null,bestA=0, grown=null;
+            try{ grown=turf.buffer(pc,0.01,{units:'kilometers'}); }catch(e){ grown=pc; }
+            withG.forEach(function(p){
+              try{ var ix=turf.intersect(grown,_feat(p.geom)); var a=ix?turf.area(ix):0; if(a>bestA){bestA=a;best=p;} }catch(e){}
+            });
+            if(!best) best=withG.reduce(function(a,b){return (+b.acres||0)>(+a.acres||0)?b:a;});
+            try{ var m=turf.union(_feat(best.geom),pc); if(m){ best.geom=_normGeom(m)||best.geom; best.acres=_r1(acresFromGeojson(m)); } }catch(e){}
+          });
+        }
+      }catch(e){ console.warn('gap assignment failed',e); }
+    }
+  }
+  // Info-only plantings
+  if(noG.length){
+    var geomAc=withG.reduce(function(s,p){return s+(+p.acres||0);},0);
+    var avail=Math.max(0,fieldAc-geomAc);
+    if(noG.length===1){ noG[0].acres=_r1(avail); }
+    else {
+      var largest=noG.reduce(function(a,b){return (+b.acres||0)>(+a.acres||0)?b:a;});
+      var fixed=noG.filter(function(p){return p!==largest;}).reduce(function(s,p){return s+(+p.acres||0);},0);
+      if(avail-fixed>=0) largest.acres=_r1(avail-fixed);
+      else { var tot=noG.reduce(function(s,p){return s+(+p.acres||0);},0)||1; noG.forEach(function(p){p.acres=_r1((+p.acres||0)/tot*avail);}); }
+    }
+  }
+  ps.forEach(function(p){ var a=before[p.id], b=+p.acres||0; if(Math.abs(a-b)>=0.05) changes.push((p.crop||p.name||'Planting')+' '+a.toFixed(1)+'→'+b.toFixed(1)); });
+  return changes;
+}
+function _afterFieldBoundaryChange(fid,oldGeom,opts){
+  opts=opts||{};
+  var season=_boundaryTargetSeason();
+  var ch=opts.noRefit?[]:_refitPlantings(fid,season,oldGeom);
+  var f=S.fields.find(function(x){return x.id===fid;});
+  var msg=(f?f.name:'Field')+' boundary → '+fAc(f,season).toFixed(1)+' ac'+(season!==S.curSeason?' (saved to '+season+')':'');
+  if(ch.length) msg+=' · plantings refit: '+ch.join(', ');
+  if(season===newestSeason()){
+    var kept=(S.seasons||[]).filter(function(s){return s!==season&&S.seasonBounds&&S.seasonBounds[s]&&S.seasonBounds[s][fid];});
+    if(kept.length) msg+=' · '+kept.join(', ')+' keep their original boundary';
+  }
+  fdToast(msg,'success');
+}
+function refitPlantingsToField(fid){
+  var ps=getPlantings(fid); if(!ps.length){fdToast('No plantings to fit.');return;}
+  pushUndo('Fit plantings to boundary');
+  var ch=_refitPlantings(fid,S.curSeason,null);
+  save(); renderMapFields(); showMapPanel(fid); renderFieldDetail(fid); renderPlan(); updateSbCrops();
+  fdToast(ch.length?('Plantings refit: '+ch.join(', ')):'Plantings already match the boundary','success');
+}
+
+// ── Quick, in-place edits ─────────────────────────────────────────────
+function quickEditPlanting(pid,key,val){
+  var p=S.plantings.find(function(x){return x.id===pid;}); if(!p) return;
+  var fid=p.fieldId;
+  pushUndo('Edit planting '+key);
+  if(key==='crop'){
+    var old=p.crop;
+    p.crop=val;
+    if(!p.name||p.name===old||/^Planting( [A-Z0-9]+)?$/.test(p.name)||p.name==='Unassigned') p.name=val||'Unassigned';
+    p.color=cropColor(val)||p.color;
+    if(val){ var fs=ensureFS(fid,p.season); if(!fs.crop||fs.crop===old) fs.crop=getFieldCrop(fid,p.season)||val; }
+  } else if(key==='acres'){
+    var v=parseFloat(val); if(isNaN(v)||v<0){ fdToast('Enter a valid acre number','error'); showMapPanel(fid); return; }
+    p.acres=_r1(v);
+    // Two plantings and the other has no drawn shape → keep the field balanced
+    var sib=getPlantings(fid,p.season).filter(function(x){return x.id!==pid;});
+    var f=S.fields.find(function(x){return x.id===fid;});
+    if(sib.length===1&&!sib[0].geom&&f){
+      var bal=Math.max(0,fAc(f,p.season)-p.acres);
+      if(Math.abs((+sib[0].acres||0)-bal)>=0.05){ sib[0].acres=_r1(bal); fdToast((sib[0].crop||sib[0].name||'Other planting')+' balanced to '+bal.toFixed(1)+' ac'); }
+    }
+  } else if(key==='variety'){ p.variety=val; }
+  save(); renderMapFields(); if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
+  renderFieldDetail(fid); renderPlan(); renderTree(); updateSbCrops();
+}
+function editFieldAcresInline(fid,val){
+  var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return;
+  var v=parseFloat(val); if(isNaN(v)||v<=0){ fdToast('Enter a valid acre number','error'); showMapPanel(fid); return; }
+  if(Math.abs(v-fAc(f))<0.05) return;
+  pushUndo('Edit field acres');
+  setFieldAcres(fid,v);
+  var ch=_refitPlantings(fid,_boundaryTargetSeason(),null);
+  save(); renderMapFields(); showMapPanel(fid); renderFieldDetail(fid); renderPlan(); renderTree();
+  fdToast(f.name+' → '+v.toFixed(1)+' ac for '+_boundaryTargetSeason()+(ch.length?(' · '+ch.join(', ')):''),'success');
+}
+function resetFieldAcresToBoundary(fid){
+  var f=S.fields.find(function(x){return x.id===fid;}); var g=fGeom(fid); if(!f||!g) return;
+  editFieldAcresInline(fid,acresFromGeojson(_feat(g)).toFixed(1));
+}
+
+// ── Split one whole-field application into one record per planting ─────
+function splitFPByPlanting(fpid,fid){
+  var fp=S.fieldProgs.find(function(x){return x.id===fpid;}); if(!fp) return;
+  var ps=getPlantings(fid,fp.season).filter(function(p){return (+p.acres||0)>0;});
+  if(ps.length<2){ fdToast('This field needs at least two plantings to split an application.','error'); return; }
+  var pr=S.programs.find(function(p){return p.id===fp.programId;});
+  if(!confirm('Track "'+(pr?pr.name:'program')+'" separately on each planting?\n\n'+ps.map(function(p){return '• '+(p.crop||p.name||'Planting')+' — '+_fmtN(p.acres,1)+' ac';}).join('\n')+'\n\nEach planting gets its own Planned/Applied status (starting as '+(fp.status==='applied'?'Applied':'Planned')+'). Rates, overrides and zone rates are copied.')) return;
+  pushUndo('Split application by planting');
+  var idx=S.fieldProgs.indexOf(fp);
+  var made=ps.map(function(p,i){
+    var n=_clone(fp); n.id=i===0?fp.id:uid(); n.plantingIds=[p.id]; n.treatmentAreaId=null; return n;
+  });
+  S.fieldProgs.splice(idx,1); S.fieldProgs.splice.apply(S.fieldProgs,[idx,0].concat(made));
+  save(); renderFieldDetail(fid); renderPlan(); renderPrograms();
+  if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
+  fdToast('Split into '+made.length+' application records','success');
+}
+
+// ── Boundary from equipment / any shapefile or GeoJSON ─────────────────
+var _eqb={fid:null,features:[],preview:null};
+function openEquipBoundaryImport(fid,target){
+  fid=fid||curFid; if(!fid){ alert('Select a field first.'); return; }
+  _eqb.fid=fid; _eqb.target=target||'field';
+  var inp=document.getElementById('shpSingleFieldFile');
+  inp.value=''; inp.click();
+}
+// Replaces the old single-feature picker
+function openFieldBorderImport(fid){ openEquipBoundaryImport(fid||toolFieldId||curFid,'field'); }
+function _readBoundaryFile(file){
+  return new Promise(function(resolve,reject){
+    var name=(file.name||'').toLowerCase();
+    var r=new FileReader();
+    if(name.endsWith('.geojson')||name.endsWith('.json')){
+      r.onload=function(ev){ try{ var gj=JSON.parse(ev.target.result); resolve(gj.type==='FeatureCollection'?gj.features:(gj.type==='Feature'?[gj]:[{type:'Feature',geometry:gj,properties:{}}])); }catch(e){ reject(e); } };
+      r.readAsText(file);
+    } else {
+      r.onload=function(ev){ shp(ev.target.result).then(function(gj){ resolve(Array.isArray(gj)?gj.flatMap(function(g){return g&&g.features?g.features:[];}):((gj&&gj.features)||[])); }).catch(reject); };
+      r.readAsArrayBuffer(file);
+    }
+  });
+}
+function handleSingleFieldBorder(e){
+  var file=e.target.files[0]; if(!file) return;
+  var fid=_eqb.fid||curFid;
+  var f=S.fields.find(function(x){return x.id===fid;}); if(!f){alert('Field not found.');return;}
+  _readBoundaryFile(file).then(function(features){
+    features=(features||[]).filter(function(ft){var g=ft&&(ft.geometry||ft);return g&&(g.type==='Polygon'||g.type==='MultiPolygon');});
+    if(!features.length){alert('No polygon boundaries found in that file.');return;}
+    var cur=_feat(fGeom(fid));
+    var curAc=fAc(f);
+    _eqb.features=features.map(function(ft,i){
+      var ac=0,ov=0;
+      try{ ac=turf.area(ft)/4046.86; }catch(x){}
+      if(cur){ try{ var ix=turf.intersect(_feat(ft),cur); ov=ix?turf.area(ix)/4046.86:0; }catch(x){} }
+      var props=ft.properties||{};
+      var label=props.FIELD_NAME||props.FieldName||props.field_name||props.FIELD||props.Field||props.NAME||props.Name||props.name||props.CLIENT_FIELD||('Feature '+(i+1));
+      return {i:i,ft:ft,ac:ac,ov:ov,label:String(label),props:props};
+    });
+    // Auto-pick: features that substantially overlap the current boundary; else best name match; else the first
+    var picks=cur?_eqb.features.filter(function(x){return x.ov>Math.max(0.5,0.25*Math.min(x.ac,curAc||x.ac));}):[];
+    if(!picks.length){ var nm=f.name.toLowerCase(); picks=_eqb.features.filter(function(x){return x.label.toLowerCase()===nm||(f.alias&&x.label.toLowerCase()===f.alias.toLowerCase());}); }
+    if(!picks.length) picks=[_eqb.features.slice().sort(function(a,b){return b.ov-a.ov;})[0]];
+    var pickSet=new Set(picks.map(function(x){return x.i;}));
+    // Sort: overlapping first
+    var list=_eqb.features.slice().sort(function(a,b){return (b.ov-a.ov)||(a.i-b.i);});
+    document.getElementById('sb-fieldname').textContent=f.name;
+    document.getElementById('sb-srcfile').textContent=file.name;
+    document.getElementById('sb-cur-ac').textContent=curAc.toFixed(1);
+    document.getElementById('sb-season').textContent=_boundaryTargetSeason();
+    var tsel=document.getElementById('sb-target');
+    var ps=getPlantings(fid,_boundaryTargetSeason());
+    tsel.innerHTML='<option value="field">Field boundary (all plantings get refit)</option>'
+      +ps.map(function(p){return '<option value="p:'+p.id+'">Planting: '+esc(p.crop||p.name||'Unassigned')+' ('+_fmtN(p.acres,1)+' ac)</option>';}).join('')
+      +'<option value="newp">New planting (e.g. as-planted map)</option>'
+      +'<option value="area">Treatment area (track a partial application)</option>';
+    tsel.value=(_eqb.target&&_eqb.target!=='field'&&[...tsel.options].some(function(o){return o.value===_eqb.target;}))?_eqb.target:'field';
+    var lst=document.getElementById('sb-feat-list');
+    lst.innerHTML=(list.length>1?'<div style="display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid var(--rule2)"><button class="btn btn-xs btn-gh" onclick="eqbSelect(\'overlap\')">Select overlapping</button><button class="btn btn-xs btn-gh" onclick="eqbSelect(\'all\')">All</button><button class="btn btn-xs btn-gh" onclick="eqbSelect(\'none\')">None</button></div>':'')
+      +list.slice(0,400).map(function(x){
+        var cols=Object.keys(x.props).slice(0,3).map(function(k){return esc(k)+': '+esc(String(x.props[k]==null?'':x.props[k]));}).join(' · ');
+        var ovTxt=cur?(x.ov>0.05?'<span style="color:var(--leaf)">overlaps '+x.ov.toFixed(1)+' ac</span>':'<span style="color:var(--muted)">no overlap</span>'):'';
+        return '<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-bottom:1px solid var(--rule2);cursor:pointer">'
+          +'<input type="checkbox" class="sb-feat-cb" value="'+x.i+'"'+(pickSet.has(x.i)?' checked':'')+' onchange="eqbUpdate()">'
+          +'<span style="flex:1;min-width:0"><strong>'+esc(x.label)+'</strong> — '+x.ac.toFixed(1)+' ac'+(ovTxt?' · '+ovTxt:'')+'<div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cols+'</div></span>'
+          +'</label>';
+      }).join('')+(list.length>400?'<div style="padding:8px 10px;font-size:11px;color:var(--muted)">Showing 400 of '+list.length+' features (overlapping ones first)</div>':'');
+    openM('singleborder');
+    eqbUpdate();
+  }).catch(function(err){alert('Could not read boundary file: '+err.message);});
+}
+function eqbSelect(mode){
+  document.querySelectorAll('.sb-feat-cb').forEach(function(cb){
+    var x=_eqb.features[+cb.value];
+    cb.checked=mode==='all'?true:mode==='none'?false:(x&&x.ov>0.05);
+  });
+  eqbUpdate();
+}
+function _eqbSelectedGeom(){
+  var sel=[...document.querySelectorAll('.sb-feat-cb:checked')].map(function(cb){return _eqb.features[+cb.value];}).filter(Boolean);
+  if(!sel.length) return null;
+  var g=sel.length===1?_feat(sel[0].ft):_unionAll(sel.map(function(x){return x.ft;}));
+  return g?_normGeom(g):null;
+}
+function eqbUpdate(){
+  var fid=_eqb.fid; var f=S.fields.find(function(x){return x.id===fid;});
+  var g=_eqbSelectedGeom();
+  var tgt=(document.getElementById('sb-target')||{}).value||'field';
+  var out=document.getElementById('sb-summary');
+  if(_eqb.preview){ try{map.removeLayer(_eqb.preview);}catch(e){} _eqb.preview=null; }
+  if(!g){ out.innerHTML='<span style="color:var(--muted)">Select at least one feature.</span>'; return; }
+  var newAc=acresFromGeojson(_feat(g));
+  var clipNote='';
+  if(tgt!=='field'){
+    var fg=_feat(fGeom(fid));
+    if(fg){ try{ var ix=turf.intersect(_feat(g),fg); var ia=ix?acresFromGeojson(ix):0; if(Math.abs(ia-newAc)>0.1) clipNote=' <span style="color:var(--muted)">(file shape '+newAc.toFixed(1)+' ac, clipped to the field boundary)</span>'; newAc=ia; }catch(e){} }
+  }
+  var curAc=f?fAc(f):0;
+  var diff=newAc-curAc;
+  out.innerHTML=tgt==='field'
+    ?('<strong>'+curAc.toFixed(1)+' ac → '+newAc.toFixed(1)+' ac</strong> <span style="color:'+(Math.abs(diff)<0.5?'var(--muted)':'var(--gold)')+'">('+(diff>=0?'+':'')+diff.toFixed(1)+')</span>')
+    :('<strong>'+newAc.toFixed(1)+' ac</strong>'+clipNote);
+  document.getElementById('sb-refit-wrap').style.display=tgt==='field'?'':'none';
+  document.getElementById('sb-acres-wrap').style.display=tgt==='field'?'':'none';
+  try{
+    _eqb.preview=L.geoJSON(g,{style:{color:'#00E5FF',weight:3,dashArray:'6,4',fillOpacity:.08}}).addTo(map);
+    if(document.getElementById('view-map')&&document.getElementById('view-map').offsetParent!==null){ var b=_eqb.preview.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[40,40]}); }
+  }catch(e){}
+}
+function _eqbClearPreview(){ if(_eqb.preview){ try{map.removeLayer(_eqb.preview);}catch(e){} _eqb.preview=null; } }
+function confirmSingleBorder(){
+  var fid=_eqb.fid; var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return;
+  var g=_eqbSelectedGeom(); if(!g){alert('Select at least one feature.');return;}
+  var tgt=document.getElementById('sb-target').value;
+  var season=_boundaryTargetSeason();
+  if(tgt==='field'){
+    if(f.boundaryLocked&&!confirm(f.name+' has a locked boundary. Replace it anyway?')) return;
+    pushUndo('Import boundary: '+f.name);
+    var oldG=_clone(fGeom(fid,season));
+    var keepAc=document.getElementById('sb-keep-acres').checked;
+    var bk=_fbBegin(fid);
+    S.fieldGeoms[fid]=g;
+    if(!keepAc) f.acres=_r1(acresFromGeojson(_feat(g)));
+    _fbEnd(bk);
+    _afterFieldBoundaryChange(fid,oldG,{noRefit:!document.getElementById('sb-refit').checked});
+  } else {
+    var fg=_feat(fGeom(fid,season)); var pg=_feat(g);
+    if(fg){ try{ var ix=turf.intersect(pg,fg); if(ix) pg=ix; }catch(e){} }
+    var pAc=_r1(acresFromGeojson(pg));
+    if(tgt==='area'){
+      var nm=prompt('Name this treatment area (e.g. "Fall spread — soybean stubble"):','Applied area');
+      if(!nm) return;
+      pushUndo('Add treatment area');
+      S.treatmentAreas=S.treatmentAreas||[];
+      S.treatmentAreas.push({id:uid(),fieldId:fid,season:season,name:nm,acres:pAc,geom:_normGeom(pg),color:'#9060CC',notes:'From '+(document.getElementById('sb-srcfile').textContent||'file')});
+      fdToast('Treatment area "'+nm+'" added ('+pAc.toFixed(1)+' ac) — pick it under Program → Treatment area','success');
+    } else if(tgt==='newp'){
+      pushUndo('Add planting from file');
+      var n=getPlantings(fid,season).length;
+      var np={id:uid(),fieldId:fid,season:season,name:'Planting '+String.fromCharCode(65+n),crop:'',variety:'',acres:pAc,acresVerified:null,plantingDate:'',vrSeed:false,notes:'',geom:_normGeom(pg),color:'#888888',verified:false};
+      S.plantings.push(np);
+      // Take the new ground out of the other plantings, then rebalance
+      _carveFromSiblings(np);
+      _refitPlantings(fid,season,null);
+      curPlantingId=np.id;
+      fdToast('New planting added ('+pAc.toFixed(1)+' ac) — set its crop in the panel','success');
+    } else if(tgt.indexOf('p:')===0){
+      var p=S.plantings.find(function(x){return x.id===tgt.slice(2);}); if(!p) return;
+      pushUndo('Replace planting boundary');
+      p.geom=_normGeom(pg); p.acres=pAc;
+      _carveFromSiblings(p);
+      _refitPlantings(fid,season,null);
+      curPlantingId=p.id;
+      fdToast((p.crop||p.name||'Planting')+' boundary replaced ('+pAc.toFixed(1)+' ac)','success');
+    }
+  }
+  _eqbClearPreview();
+  save(); closeM('singleborder'); renderMapFields(); renderTree(); renderPlan(); updateSbCrops();
+  try{ var fb=fGeom(fid); if(fb) map.fitBounds(L.geoJSON(fb).getBounds(),{padding:[40,40]}); }catch(e){}
+  showMapPanel(fid); renderFieldDetail(fid);
+}
+// Remove planting p's shape from its siblings (so shapes never double-count).
+// Siblings without a shape, when p is the only shaped planting, become the remainder.
+function _carveFromSiblings(p){
+  if(!window.turf||!p.geom) return;
+  var sibs=getPlantings(p.fieldId,p.season).filter(function(x){return x.id!==p.id;});
+  var pf=_feat(p.geom);
+  sibs.forEach(function(s){
+    if(!s.geom) return;
+    try{
+      var d=turf.difference(_feat(s.geom),pf);
+      if(d){ d=_cleanSlivers(d,0.05); s.geom=_normGeom(d)||s.geom; s.acres=_r1(acresFromGeojson(d)); }
+      else { s.acres=0; }
+    }catch(e){ console.warn('carve failed',e); }
+  });
+  var shaped=sibs.filter(function(s){return s.geom;});
+  var unshaped=sibs.filter(function(s){return !s.geom;});
+  if(!shaped.length&&unshaped.length===1){
+    var fg=_feat(fGeom(p.fieldId,p.season));
+    if(fg){ try{ var rem=turf.difference(fg,pf); if(rem){ rem=_cleanSlivers(rem); unshaped[0].geom=_normGeom(rem); unshaped[0].acres=_r1(acresFromGeojson(rem)); } }catch(e){} }
+  }
+  // Drop empty, data-less plantings that were completely replaced
+  S.plantings=S.plantings.filter(function(x){
+    if(x.fieldId!==p.fieldId||x.season!==p.season||x.id===p.id) return true;
+    if((+x.acres||0)>0.05) return true;
+    if(x.crop&&x.crop!=='Unassigned') return true;
+    return (S.fieldProgs||[]).some(function(fp){return (fp.plantingIds||[]).indexOf(x.id)>=0;});
+  });
+}
+
 function getFieldCrop(fid,season){
   var s=season||S.curSeason;
   var ps=(S.plantings||[]).filter(function(p){return p.fieldId===fid&&p.season===s&&p.crop;});
@@ -2394,9 +2984,9 @@ function fieldCropAcres(fid,crop,season){
   var ps=(S.plantings||[]).filter(function(p){return p.fieldId===fid&&p.season===s&&p.crop===crop;});
   if(ps.length) return ps.reduce(function(s,p){return s+(+p.acres||0);},0);
   var f=S.fields.find(function(x){return x.id===fid;});
-  return f?+f.acres||0:0;
+  return f?+fAc(f)||0:0;
 }
-function totalAc(arr){ return arr.reduce((s,f)=>s+(+f.acres||0),0); }
+function totalAc(arr){ return arr.reduce((s,f)=>s+(+fAc(f)||0),0); }
 function cropColor(c){ const m={Corn:'#D0B018',Soybeans:'#50A020',Wheat:'#C08028','Spring Wheat':'#C08028',Canola:'#7060CC',Sunflower:'#E09C18',Sugarbeet:'#D83858',Barley:'#B08030',Flax:'#9060CC',Fallow:'#C8B898',Other:'#888888',Unknown:'#999999',Unassigned:'#BBBBBB'}; return m[c]||'#7AB858'; }
 function cropClass(c){ const m={Corn:'cb-Corn',Soybeans:'cb-Soybeans',Wheat:'cb-Wheat','Spring Wheat':'cb-SpringWheat',Canola:'cb-Canola',Sunflower:'cb-Sunflower',Sugarbeet:'cb-Sugarbeet',Barley:'cb-Barley',Flax:'cb-Flax',Other:'cb-Other',Fallow:'cb-Fallow',Unknown:'cb-Other',Unassigned:'cb-none'}; return m[c]||'cb-Other'; }
 function typeIco(t){ return {herbicide:'🌿',fungicide:'🍄',insecticide:'🐛',fertilizer:'🧪','fert-fall':'🍂','fert-spring':'🌱',chemical:'🧪','fert-blend':'🧪','fert-product':'🪣',seed:'🌾',pgr:'🔬',other:'📋'}[t]||'📋'; }
@@ -2421,11 +3011,13 @@ async function init(){
     window.__fdPreloadedSnapshot = null;
   }
   loadState();
+  _installSeasonGuards();
   // One-time + ongoing canonicalization: any Feature-wrapped geoms in existing
   // data get flattened to raw geometry so all readers see one shape.
   try{_normalizeAllGeoms();}catch(e){console.warn('boot geom normalization failed',e);}
   loadSettings();
   renderSeasons();
+  updateSeasonLockUI();
   renderTree();
   renderPlan();
   renderPrograms();
@@ -2446,8 +3038,19 @@ function renderSeasons(){
   s.innerHTML=S.seasons.map(x=>`<option value="${x}"${x===S.curSeason?' selected':''}>${x}</option>`).join('');
   ['prog-season','rx-season'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=S.seasons.map(x=>`<option value="${x}"${x===S.curSeason?' selected':''}>${x}</option>`).join('');});
 }
-function onSeasonChange(){ S.curSeason=document.getElementById('seasonSel').value; save(); renderAll(); }
-function addSeason(){ const y=prompt('Enter season year:',+new Date().getFullYear()+1); if(!y||S.seasons.includes(y.toString())) return; S.seasons.unshift(y.toString()); S.curSeason=y.toString(); save(); renderSeasons(); renderAll(); }
+function onSeasonChange(){ if(activeTool) try{cancelTool(true);}catch(e){} S.curSeason=document.getElementById('seasonSel').value; save(); updateSeasonLockUI(); renderAll(); if(curFid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(curFid); }
+function addSeason(){
+  const y=prompt('Enter season year:',+new Date().getFullYear()+1); if(!y||S.seasons.includes(y.toString())) return;
+  var prevNewest=newestSeason();
+  S.seasons.unshift(y.toString());
+  S.seasons.sort(function(a,b){return _seasonNum(b)-_seasonNum(a);});
+  S.curSeason=y.toString();
+  S.seasonLocks=S.seasonLocks||{};
+  if(_seasonNum(y)>_seasonNum(prevNewest)&&!isSeasonLocked(prevNewest)){
+    if(confirm('Lock '+prevNewest+' as a finished record now?\n\nChoose Cancel to keep '+prevNewest+' editable (e.g. fall applications still going on). You can lock it any time with the 🔒 button.')) S.seasonLocks[prevNewest]=true;
+  }
+  save(); renderSeasons(); updateSeasonLockUI(); renderAll();
+}
 function renderAll(){ renderPlan(); renderTree(); renderPrograms(); renderRx(); updateSbCrops(); if(curFid) renderFieldDetail(curFid); refreshMapColors(); }
 
 // ════════════════════════════════════════
@@ -2462,13 +3065,13 @@ function renderTree(){
   const sortedGrowers=[...S.growers].sort((a,b)=>a.name.localeCompare(b.name));
   // General folder — growers nest inside it
   var allActive=!curGrowerFilter;
-  var totalAllAc=Math.round(S.fields.reduce(function(s,f){return s+(+f.acres||0);},0));
+  var totalAllAc=Math.round(S.fields.reduce(function(s,f){return s+(+fAc(f)||0);},0));
   var growerRows=sortedGrowers.map(function(g){
     const gFarms=S.farms.filter(f=>f.growerId===g.id).sort((a,b)=>a.name.localeCompare(b.name));
     const gFlds=S.fields.filter(f=>f.growerId===g.id);
     if(cropFilter!=='all'&&!gFlds.some(f=>fieldMatchesCrop(f.id,cropFilter,S.curSeason))) return '';
     if(q&&!g.name.toLowerCase().includes(q)&&!gFlds.some(f=>f.name.toLowerCase().includes(q)||(f.alias||'').toLowerCase().includes(q))){return '';}
-    const gHasGeom=gFlds.some(f=>S.fieldGeoms[f.id]);
+    const gHasGeom=gFlds.some(f=>fGeom(f.id));
     var isActive=curGrowerFilter===g.id;
     var gkOpen=treeGrowerOpen.has('gkids-'+g.id);
     return `<div class="gn" style="margin-left:10px"><div class="gn-row${isActive?' active':''}">
@@ -2496,12 +3099,12 @@ function renderTree(){
             const crops=getFieldCrops(f.id);
             const pcount=getPlantings(f.id).length;
             const dotsHtml=crops.length?crops.slice(0,3).map(c=>`<span class="fld-dot" style="background:${cropColor(c)}"></span>`).join(''):`<span class="fld-dot" style="background:#3C5030"></span>`;
-            const hasBound=!!S.fieldGeoms[f.id];
+            const hasBound=!!fGeom(f.id);
             return `<div class="fld-row${curFid===f.id?' on':''}" id="frow-${f.id}" onclick="selField('${f.id}')">
               ${dotsHtml}
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(f.name)}${f.alias?` <span style="font-size:9px;color:rgba(255,255,255,.3);font-style:italic">${esc(f.alias)}</span>`:''}</span>
               ${pcount>1?`<span class="fld-split">${pcount}</span>`:''}
-              <span class="fld-ac">${f.acres}ac</span>
+              <span class="fld-ac">${fAc(f)}ac</span>
               <button class="tree-act tree-del" onclick="event.stopPropagation();deleteField('${f.id}')" title="Delete field">&#x2715;</button>
             </div>`;
           }).join('')}
@@ -2604,12 +3207,12 @@ function treeCollapseToGrowerLevel(){
 function openMultiCrop(fid){
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f)return;
   document.getElementById('mc-fid').value=fid;
-  document.getElementById('mc-info').innerHTML='<strong>'+esc(f.name)+'</strong> &nbsp;&middot;&nbsp; '+(+f.acres).toFixed(1)+' boundary acres';
-  document.getElementById('mc-bac').textContent=(+f.acres).toFixed(1)+' ac';
+  document.getElementById('mc-info').innerHTML='<strong>'+esc(f.name)+'</strong> &nbsp;&middot;&nbsp; '+(+fAc(f)).toFixed(1)+' boundary acres';
+  document.getElementById('mc-bac').textContent=(+fAc(f)).toFixed(1)+' ac';
   document.getElementById('mc-rows').innerHTML='';
   var ex=getPlantings(fid).filter(function(p){return p.crop&&p.crop!=='Unknown';});
   if(ex.length){ex.forEach(function(p){mcAddRow(p.crop,p.variety||'',p.acres||0);});}
-  else{var fcrop=getFieldCrop(fid);mcAddRow(fcrop||'','',+f.acres);}
+  else{var fcrop=getFieldCrop(fid);mcAddRow(fcrop||'','',+fAc(f));}
   mcRecalc(); openM('multicrop');
 }
 function mcAddRow(crop,variety,acres){
@@ -2624,7 +3227,7 @@ function mcAddRow(crop,variety,acres){
 function mcRecalc(){
   var fid=document.getElementById('mc-fid').value;
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f)return;
-  var B=+f.acres||0;
+  var B=+fAc(f)||0;
   var autoB=document.getElementById('mc-auto')&&document.getElementById('mc-auto').checked;
   var rows=[].slice.call(document.querySelectorAll('.mc-row'));
   if(autoB&&rows.length>0){
@@ -2669,12 +3272,12 @@ function mcSave(){
       plantingDate:oldP?oldP.plantingDate:'',vrSeed:false,notes:oldP?oldP.notes:'',
       geom:oldP?oldP.geom:null,color:CLR[idx%CLR.length],verified:false});
   });
-  var f2=S.fields.find(function(x){return x.id===fid;}); var gap=Math.max(0,(+f2.acres||0)-crops.reduce(function(s,cr){return s+cr.acres;},0));
+  var f2=S.fields.find(function(x){return x.id===fid;}); var gap=Math.max(0,(+fAc(f2)||0)-crops.reduce(function(s,cr){return s+cr.acres;},0));
   if(gap>0.05) S.plantings.push({id:uid(),fieldId:fid,season:S.curSeason,name:'Unassigned',crop:'',variety:'',acres:parseFloat(gap.toFixed(1)),acresVerified:null,plantingDate:'',vrSeed:false,notes:'Too wet / not planted',geom:null,color:'#888888',verified:false});
   var fs2=ensureFS(fid); fs2.crop=crops[0].crop; fs2.variety=crops[0].variety;
   save(); closeM('multicrop'); renderFieldDetail(fid); renderPlan(); renderTree(); updateSbCrops(); refreshMapColors();
   if(S.plantings.filter(function(p){return p.fieldId===fid&&p.season===S.curSeason&&!p.geom;}).length>1){
-    if(confirm('Crops saved! Go to map to draw the split boundaries?')){setTab('map');setTimeout(function(){if(S.fieldGeoms[fid])zoomToField(fid);},200);}
+    if(confirm('Crops saved! Go to map to draw the split boundaries?')){setTab('map');setTimeout(function(){if(fGeom(fid))zoomToField(fid);},200);}
   }
 }
 
@@ -2961,7 +3564,9 @@ function toggleFPStatus(fpid,fid){
   var fp=S.fieldProgs.find(function(x){return x.id===fpid;});
   if(!fp)return;
   fp.status=(fp.status==='applied')?'planned':'applied';
+  if(fp.status==='applied'&&!fp.appliedDate) fp.appliedDate=new Date().toISOString().slice(0,10);
   save(); renderFieldDetail(fid); renderPrograms();
+  if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
 }
 function toggleFPScope(fpid,fid){
   var fp=S.fieldProgs.find(function(x){return x.id===fpid;});
@@ -3045,8 +3650,8 @@ function applyGrowerFilter(gid){
     if(map){
       renderMapFields();
       if(gid){
-        var fids=S.fields.filter(function(f){return f.growerId===gid;}).filter(function(f){return S.fieldGeoms[f.id];});
-        if(fids.length){var grp=L.geoJSON({type:'FeatureCollection',features:fids.map(function(f){return S.fieldGeoms[f.id];})});if(grp.getBounds().isValid())map.fitBounds(grp.getBounds(),{padding:[40,40]});}
+        var fids=S.fields.filter(function(f){return f.growerId===gid;}).filter(function(f){return fGeom(f.id);});
+        if(fids.length){var grp=L.geoJSON({type:'FeatureCollection',features:fids.map(function(f){return fGeom(f.id);})});if(grp.getBounds().isValid())map.fitBounds(grp.getBounds(),{padding:[40,40]});}
       }
     }
     renderPlan();
@@ -3064,7 +3669,7 @@ function filterMapToGrower(gid){
   mapDisplayFilter={type:'grower',id:gid};
   setTab('map');
   setTimeout(()=>{
-    const fids=S.fields.filter(f=>f.growerId===gid).filter(f=>S.fieldGeoms[f.id]).map(f=>S.fieldGeoms[f.id]);
+    const fids=S.fields.filter(f=>f.growerId===gid).filter(f=>fGeom(f.id)).map(f=>fGeom(f.id));
     const grp=L.geoJSON({type:'FeatureCollection',features:fids});
     if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[40,40]});
     renderMapFields();
@@ -3074,7 +3679,7 @@ function filterMapToFarm(fmid){
   mapDisplayFilter={type:'farm',id:fmid};
   setTab('map');
   setTimeout(()=>{
-    const fids=S.fields.filter(f=>f.farmId===fmid).filter(f=>S.fieldGeoms[f.id]).map(f=>S.fieldGeoms[f.id]);
+    const fids=S.fields.filter(f=>f.farmId===fmid).filter(f=>fGeom(f.id)).map(f=>fGeom(f.id));
     const grp=L.geoJSON({type:'FeatureCollection',features:fids});
     if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[40,40]});
     renderMapFields();
@@ -3084,7 +3689,7 @@ function filterMapToGrower(gid){
   mapDisplayFilter={type:'grower',id:gid};
   setTab('map');
   setTimeout(()=>{
-    const fids=S.fields.filter(f=>f.growerId===gid).filter(f=>S.fieldGeoms[f.id]).map(f=>S.fieldGeoms[f.id]);
+    const fids=S.fields.filter(f=>f.growerId===gid).filter(f=>fGeom(f.id)).map(f=>fGeom(f.id));
     const grp=L.geoJSON({type:'FeatureCollection',features:fids});
     if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[40,40]});
     renderMapFields();
@@ -3094,7 +3699,7 @@ function filterMapToFarm(fmid){
   mapDisplayFilter={type:'farm',id:fmid};
   setTab('map');
   setTimeout(()=>{
-    const fids=S.fields.filter(f=>f.farmId===fmid).filter(f=>S.fieldGeoms[f.id]).map(f=>S.fieldGeoms[f.id]);
+    const fids=S.fields.filter(f=>f.farmId===fmid).filter(f=>fGeom(f.id)).map(f=>fGeom(f.id));
     const grp=L.geoJSON({type:'FeatureCollection',features:fids});
     if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[40,40]});
     renderMapFields();
@@ -3102,7 +3707,7 @@ function filterMapToFarm(fmid){
 }
 function zoomToGrower(gid){
   const gFlds=S.fields.filter(f=>f.growerId===gid);
-  const geoms=gFlds.map(f=>S.fieldGeoms[f.id]).filter(Boolean);
+  const geoms=gFlds.map(f=>fGeom(f.id)).filter(Boolean);
   if(!geoms.length){alert('No boundaries loaded for this grower.');return;}
   mapDisplayFilter={type:'grower',id:gid};
   setTab('map');
@@ -3131,7 +3736,7 @@ function clearMapFilter(){
 }
 function zoomToCrop(crop){
   const fids=S.plantings.filter(function(p){return p.season===S.curSeason&&p.crop===crop;}).map(function(p){return p.fieldId;});
-  const geoms=fids.map(fid=>S.fieldGeoms[fid]).filter(Boolean);
+  const geoms=fids.map(fid=>fGeom(fid)).filter(Boolean);
   if(!geoms.length){alert('No boundaries for '+crop+' fields.');return;}
   mapDisplayFilter={type:'crop',crop};
   setTab('map');
@@ -3142,11 +3747,12 @@ function zoomToCrop(crop){
   },150);
 }
 function zoomToField(fid){
-  if(!S.fieldGeoms[fid]){alert('No boundary for this field.');return;}
+  if(!fGeom(fid)){alert('No boundary for this field.');return;}
   setTab('map');
-  setTimeout(()=>{ const grp=L.geoJSON(S.fieldGeoms[fid]); if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[60,60]}); },150);
+  setTimeout(()=>{ const grp=L.geoJSON(fGeom(fid)); if(grp.getBounds().isValid()) map.fitBounds(grp.getBounds(),{padding:[60,60]}); },150);
 }
 function updateSbCrops(){
+  if(typeof S==='undefined'||!S||!S.plantings) return;
   const crops=[...new Set(S.plantings.filter(function(p){return p.season===S.curSeason&&p.crop;}).map(function(p){return p.crop;}))].sort();
   const totalGeoms=Object.keys(S.fieldGeoms).length;
   document.getElementById('sbCrops').innerHTML=
@@ -3155,7 +3761,7 @@ function updateSbCrops(){
     +(totalGeoms?`<div style="border-top:1px solid rgba(255,255,255,.08);margin:5px 2px 2px;padding-top:4px;display:flex;flex-direction:column;gap:3px">
       <div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:0 3px;margin-bottom:1px">Zoom To</div>
       <div class="sb-zoom" onclick="zoomToAllFields()">🗺 All Fields</div>
-      ${crops.map(c=>{const fids=S.plantings.filter(function(p){return p.season===S.curSeason&&p.crop===c;}).map(function(p){return p.fieldId;});const hasGeom=fids.some(fid=>S.fieldGeoms[fid]);return hasGeom?`<div class="sb-zoom" onclick="zoomToCrop('${c}')">🗺 ${c}</div>`:''}).join('')}
+      ${crops.map(c=>{const fids=S.plantings.filter(function(p){return p.season===S.curSeason&&p.crop===c;}).map(function(p){return p.fieldId;});const hasGeom=fids.some(fid=>fGeom(fid));return hasGeom?`<div class="sb-zoom" onclick="zoomToCrop('${c}')">🗺 ${c}</div>`:''}).join('')}
     </div>`:'');
 }
 function setCropFilter(el){ cropFilter=el.dataset.c; document.querySelectorAll('.sb-cp').forEach(p=>p.classList.toggle('on',p.dataset.c===cropFilter)); renderTree(); renderPlan(); renderMapFields(); }
@@ -3226,7 +3832,7 @@ function renderPlan(){
           var _cropP=cropZones.length===1?cropZones[0]:null;
           var _hasUnassigned=allZones.length>cropZones.length;
           // If there's an Unassigned remainder, show full field boundary acres — not just crop planting acres
-          var _useZoneAc=_cropP&&!_hasUnassigned&&+_cropP.acres<+f.acres-0.5?+_cropP.acres:null;
+          var _useZoneAc=_cropP&&!_hasUnassigned&&+_cropP.acres<+fAc(f)-0.5?+_cropP.acres:null;
           rows.push({g,fm,f,fs,crop,prev,progs,zones:allZones,zoneAc:_useZoneAc});
         }
       });
@@ -3244,7 +3850,7 @@ function renderPlan(){
         else {
           var ps=getPlantings(r.f.id).filter(function(p){return p.crop===_activeCropF;});
           if(ps.length) ps.forEach(function(p){totalA+=(+p.acres||0);});
-          else totalA+=(+r.f.acres||0);
+          else totalA+=(+fAc(r.f)||0);
         }
       } else {
         // No crop filter: use planting acres for consistency with crop acres report
@@ -3253,7 +3859,7 @@ function renderPlan(){
         var _tps=_allps.filter(function(p){return p.crop&&p.crop!=='Unknown';});
         // If field has an Unassigned remainder, count full boundary acres (not just planted portion)
         if(_tps.length&&!_hasUnassdZ) _tps.forEach(function(p){totalA+=(+p.acres||0);});
-        else totalA+=(r.zoneAc?+r.zoneAc:+r.f.acres||0);
+        else totalA+=(r.zoneAc?+r.zoneAc:+fAc(r.f)||0);
       }
     }
   });
@@ -3268,7 +3874,7 @@ function renderPlan(){
     grower:(a,b)=>a.g.name.localeCompare(b.g.name)||a.fm.name.localeCompare(b.fm.name)||(a.f.name.localeCompare(b.f.name)),
     farm:(a,b)=>a.fm.name.localeCompare(b.fm.name)||(a.f.name.localeCompare(b.f.name)),
     field:(a,b)=>a.f.name.localeCompare(b.f.name),
-    acres:(a,b)=>(+a.f.acres)-(+b.f.acres),
+    acres:(a,b)=>(+fAc(a.f))-(+fAc(b.f)),
     crop:(a,b)=>(a.crop||'zzz').localeCompare(b.crop||'zzz')||(a.f.name.localeCompare(b.f.name)),
     variety:(a,b)=>((a.fs&&a.fs.variety)||'').localeCompare((b.fs&&b.fs.variety)||''),
     tillage:(a,b)=>((a.fs&&a.fs.tillage)||'').localeCompare((b.fs&&b.fs.tillage)||''),
@@ -3306,7 +3912,7 @@ function renderPlan(){
     return `<tr class="${sel?'sel':''}" ondblclick="selField('${f.id}')">
       <td onclick="event.stopPropagation()"><input type="checkbox" class="rcb" data-fid="${f.id}" ${sel?'checked':''} onchange="toggleRow(this,'${f.id}')"></td>
       ${isSubRow?'<td style="color:var(--muted);font-size:11px">&#8627;</td><td style="font-size:10px;color:var(--muted)"></td><td style="padding-left:18px;border-left:2px solid var(--rule);font-size:12px;color:var(--muted)"><em>'+esc(f.name)+'</em> <span style="font-size:10px;color:var(--leaf);font-style:normal">'+esc(crop)+'</span></td>':`<td style="font-size:12px;color:var(--muted)">${esc(g.name)}</td><td style="font-size:12px;color:var(--muted)">${esc(fm.name)}</td><td><strong>${esc(f.name)}</strong>${f.vrt?` <span style="font-size:8px;padding:0 5px;background:rgba(100,120,230,.18);color:#99aaff;border:1px solid #99aaff;border-radius:5px;font-family:'IBM Plex Mono',monospace;vertical-align:middle">VRT</span>`:''} ${f.alias?`<div style="font-size:10px;color:var(--muted);font-style:italic">${esc(f.alias)}</div>`:''}<div style="margin-top:3px">${cv.tags?renderFieldTags(f.tags):''}</div></td>`}
-      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${zoneAc?_fmtN(zoneAc,1):_fmtN(f.acres,1)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${zoneAc?_fmtN(zoneAc,1):_fmtN(fAc(f),1)}</td>
       <td style="position:relative">
         <div style="display:flex;align-items:center;gap:5px">
           ${!zoneId?`<button class='crop-badge-btn' onclick="event.stopPropagation();showCropPicker(event,'${f.id}')" title='Click to change crop'>${badge}</button>`:`${badge}`}
@@ -3376,14 +3982,14 @@ function updateBulkBar(){
       selFields.forEach(function(f){
         var ps=getPlantings(f.id).filter(function(p){return p.crop===cropFilter;});
         if(ps.length) ps.forEach(function(p){selAc+=(+p.acres||0);});
-        else selAc+=(+f.acres||0); // fallback: no planting defined
+        else selAc+=(+fAc(f)||0); // fallback: no planting defined
       });
     } else {
       // Use planting acres for named crops; fall back to field acres
       selFields.forEach(function(f){
         var _sps=getPlantings(f.id).filter(function(p){return p.crop&&p.crop!=='Unassigned';});
         if(_sps.length) _sps.forEach(function(p){selAc+=(+p.acres||0);});
-        else selAc+=(+f.acres||0);
+        else selAc+=(+fAc(f)||0);
       });
     }
     document.getElementById('bulkTxt').textContent=`${selectedRows.size} field${selectedRows.size!==1?'s':''} selected (${_fmtN(selAc,1)}ac${cropFilter!=='all'?' '+cropFilter:''})`;
@@ -3400,7 +4006,7 @@ function sendSelectionToMap(){
   // Fit map to the selected fields
   var layers=[];
   mapSelectedFids.forEach(function(fid){
-    if(S.fieldGeoms[fid]) layers.push(S.fieldGeoms[fid]);
+    if(fGeom(fid)) layers.push(fGeom(fid));
   });
   if(layers.length){
     try{
@@ -3458,8 +4064,11 @@ function renderFieldDetail(fid){
   const zones=getPlantings(fid); // now reads S.plantings
   const rxs=(S.prescriptions||[]).filter(r=>r.fieldId===fid&&r.season===S.curSeason);
   const rotSeasons=S.seasons.slice(0,5);
+  const _ro=isSeasonLocked(S.curSeason);
+  const _bNote=seasonBoundaryNote(fid);
 
   document.getElementById('fieldDetailWrap').innerHTML=`
+    ${_ro?`<div class="fd-ro-note">🔒 ${S.curSeason} is a locked record — plantings, acres and applications are read-only. Unlock it from the season bar if you need to correct something.</div>`:''}
     <div style="display:flex;align-items:center;gap:5px;margin-bottom:13px;font-size:12px;color:var(--muted)">
       <span style="cursor:pointer;color:var(--leaf)" onclick="setView('plan',document.querySelector('[data-view=plan]'))">${esc(g?g.name:'')}</span>
       <span>›</span><span style="cursor:pointer;color:var(--leaf)">${esc(fm?fm.name:'')}</span>
@@ -3469,15 +4078,16 @@ function renderFieldDetail(fid){
       <div class="fd-acts">
         <button class="btn btn-og btn-sm" onclick="editField('${fid}')">✏ Edit Field</button>
         <button class="btn btn-sm" style="background:rgba(80,120,200,.15);color:#99aaff;border:1px solid rgba(80,120,200,.4)" onclick="openMerge('${fid}')" title="Merge this field with another">🔀 Merge</button>
-        ${S.fieldGeoms[fid]?`<button class="btn btn-sm" style="background:rgba(220,60,60,.15);color:#ff8888;border:1px solid rgba(220,60,60,.4)" onclick="setView('map',document.querySelector('[data-view=map]'));startCutHole('${fid}')" title="Draw a hole/exclusion area inside the field boundary">⊘ Cut Hole</button>`:''}
+        ${fGeom(fid)?`<button class="btn btn-sm" style="background:rgba(220,60,60,.15);color:#ff8888;border:1px solid rgba(220,60,60,.4)" onclick="setView('map',document.querySelector('[data-view=map]'));startCutHole('${fid}')" title="Draw a hole/exclusion area inside the field boundary">⊘ Cut Hole</button>`:''}
         <button class="btn btn-r btn-sm" onclick="event.stopPropagation();deleteField('${fid}')" title="Delete field">🗑</button>
       </div>
       <div class="fd-title">${esc(f.name)}</div>
+      ${_bNote?`<div style="font-size:11px;color:var(--sky);margin-bottom:4px">⏱ ${esc(_bNote)}</div>`:''}
       ${(()=>{
         var plantingAc=zones.reduce(function(s,p){return s+(+p.acres||0);},0);
-        var fieldAc=+f.acres||0;
+        var fieldAc=+fAc(f)||0;
         var diff=Math.abs(plantingAc-fieldAc);
-        if(diff<0.5||!zones.length) return '';
+        if(diff<0.5||!zones.length||_ro) return '';
         var over=plantingAc>fieldAc;
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 10px;background:rgba(220,120,20,.12);border:1px solid rgba(220,120,20,.4);border-radius:var(--r)">'
           +'<span style="color:#E08030;font-size:13px">⚠</span>'
@@ -3488,7 +4098,7 @@ function renderFieldDetail(fid){
       <div class="fd-sub">${esc(g?g.name:'')} · ${esc(fm?fm.name:'')}${f.vrt?` <span style="font-size:9px;padding:1px 7px;background:rgba(100,120,230,.18);color:#99aaff;border:1px solid #99aaff;border-radius:8px;font-family:'IBM Plex Mono',monospace">VRT · ${f.vrtZones||5} zones</span>`:''}</div>
       ${f.alias?`<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;font-style:italic">"${esc(f.alias)}"</div>`:''}
       <div class="fd-meta">
-        <div class="fd-m"><strong>${(+f.acres).toFixed(1)}</strong> boundary ac${zones.length?` · <strong style="color:var(--grass)">${zones.reduce((s,z)=>s+(+z.acres||0),0).toFixed(1)}</strong> planted`:''}${zones.length&&Math.abs((+f.acres)-zones.reduce((s,z)=>s+(+z.acres||0),0))>0.05?` · <strong style="color:var(--gold)">${Math.max(0,(+f.acres)-zones.reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)}</strong> unassigned`:''}</div>
+        <div class="fd-m"><strong>${(+fAc(f)).toFixed(1)}</strong> boundary ac${zones.length?` · <strong style="color:var(--grass)">${zones.reduce((s,z)=>s+(+z.acres||0),0).toFixed(1)}</strong> planted`:''}${zones.length&&Math.abs((+fAc(f))-zones.reduce((s,z)=>s+(+z.acres||0),0))>0.05?` · <strong style="color:var(--gold)">${Math.max(0,(+fAc(f))-zones.reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)}</strong> unassigned`:''}</div>
         ${cropLabel?`<div class="fd-m"><strong>${esc(cropLabel)}</strong>${crops.length===1&&fs&&fs.variety?` (${esc(fs.variety)})`:''}</div>`:'<div class="fd-m" style="opacity:.4">No crop set</div>'}
         ${fs&&fs.tillage?`<div class="fd-m"><strong>${esc(fs.tillage)}</strong></div>`:''}
         ${f.notes?`<div class="fd-m" style="font-style:italic;opacity:.7">${esc(f.notes)}</div>`:''}
@@ -3503,15 +4113,15 @@ function renderFieldDetail(fid){
     ${zones.length?`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Plantings</div>
-        <button class="btn btn-og btn-sm" onclick="openZoneModal('','${fid}','${S.curSeason}')">＋ Planting</button>
-        ${(()=>{const prevS=S.seasons[S.seasons.indexOf(S.curSeason)+1];const prevPs=prevS?S.plantings.filter(p=>p.fieldId===fid&&p.season===prevS&&p.geom):[];const curPs=S.plantings.filter(p=>p.fieldId===fid&&p.season===S.curSeason);return prevPs.length&&!curPs.some(p=>p.geom)?`<button class="btn btn-sm" style="background:rgba(80,160,40,.15);color:var(--leaf);border-color:var(--sage)" onclick="carryForwardBorders('${fid}')" title="Copy last season's planting borders into this season">⬡ Copy Borders from ${prevS}</button>`:''})()}
-        <button class="btn btn-a btn-sm" onclick="openAssign('${fid}')">＋ Program</button>
+        ${_ro?'':`<button class="btn btn-og btn-sm" onclick="openZoneModal('','${fid}','${S.curSeason}')">＋ Planting</button>`}
+        ${_ro?'':(()=>{const prevS=S.seasons[S.seasons.indexOf(S.curSeason)+1];const prevPs=prevS?S.plantings.filter(p=>p.fieldId===fid&&p.season===prevS&&p.geom):[];const curPs=S.plantings.filter(p=>p.fieldId===fid&&p.season===S.curSeason);return prevPs.length&&!curPs.some(p=>p.geom)?`<button class="btn btn-sm" style="background:rgba(80,160,40,.15);color:var(--leaf);border-color:var(--sage)" onclick="carryForwardBorders('${fid}')" title="Copy last season's planting borders into this season">⬡ Copy Borders from ${prevS}</button>`:''})()}
+        ${_ro?'':`<button class="btn btn-a btn-sm" onclick="openAssign('${fid}')">＋ Program</button>`}
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:11px;align-items:center;flex-wrap:wrap">
-        <span style="color:var(--muted)">Boundary:</span> <strong>${_fmtN(f.acres,1)} ac</strong>
+        <span style="color:var(--muted)">Boundary:</span> <strong>${_fmtN(fAc(f),1)} ac</strong>
         <span style="color:var(--rule);margin:0 2px">|</span>
         <span style="color:var(--muted)">Planted:</span> <strong style="color:var(--leaf)">${zones.reduce((s,z)=>s+(+z.acres||0),0).toFixed(1)} ac</strong>
-        ${Math.abs((+f.acres)-zones.reduce((s,z)=>s+(+z.acres||0),0))>0.05?`<span style="color:var(--rule);margin:0 2px">|</span><span style="color:var(--muted)">Unassigned:</span> <strong style="color:var(--gold)">${Math.max(0,(+f.acres)-zones.reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)} ac</strong>`:'<span style="color:var(--sage);font-weight:600">✓ Fully assigned</span>'}
+        ${Math.abs((+fAc(f))-zones.reduce((s,z)=>s+(+z.acres||0),0))>0.05?`<span style="color:var(--rule);margin:0 2px">|</span><span style="color:var(--muted)">Unassigned:</span> <strong style="color:var(--gold)">${Math.max(0,(+fAc(f))-zones.reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)} ac</strong>`:'<span style="color:var(--sage);font-weight:600">✓ Fully assigned</span>'}
       </div>
       <div class="zone-cards" style="margin-bottom:16px">
         ${zones.map(z=>`<div class="zc">
@@ -3521,22 +4131,25 @@ function renderFieldDetail(fid){
             ${z.verified?'<span style="font-size:9px;color:var(--gold);font-weight:700">✓</span>':''}
           </div>
           <div class="zc-crop">${z.variety?`<span style="font-size:9px;color:var(--muted)">${esc(z.variety)}</span>`:''}</div>
-          <div class="zc-ac">${(z.verified&&z.acresVerified)?z.acresVerified+' ac (actual)':z.acres?z.acres+' ac':'?'}</div>
+          ${_ro?`<div class="zc-ac">${(z.verified&&z.acresVerified)?z.acresVerified+' ac (actual)':z.acres?_fmtN(z.acres,1)+' ac':'?'}</div>`
+            :`<div style="display:flex;align-items:center;gap:4px;margin:3px 0"><input class="ac-edit" type="number" step="0.1" min="0" value="${_fmtN(z.acres,1)}" title="Planting acres — Enter to save" onkeydown="if(event.key==='Enter')this.blur()" onchange="quickEditPlanting('${z.id}','acres',this.value)"><span style="font-size:10px;color:var(--muted)">ac</span></div>
+              <select class="fc" style="font-size:10.5px;padding:1px 3px;margin-bottom:2px" onchange="quickEditPlanting('${z.id}','crop',this.value)">${cropOptions(z.crop||'',true,true)}</select>`}
+          ${(()=>{const _za=progs.filter(fp=>fp.plantingIds&&fp.plantingIds.indexOf(z.id)>=0);return _za.length?`<div style="font-size:9px;color:var(--muted);margin-top:2px">${_za.map(fp=>{const _pr=S.programs.find(x=>x.id===fp.programId);return _pr?(fp.status==='applied'?'✓ ':'○ ')+esc(_pr.name):'';}).filter(Boolean).join('<br>')}</div>`:'';})()}
           ${z.plantingDate?`<div style="font-size:9px;color:var(--muted)">📅 ${z.plantingDate}</div>`:''}
           ${z.notes?`<div style="font-size:9px;color:var(--muted);font-style:italic">${esc(z.notes)}</div>`:''}
-          <div style="display:flex;gap:4px;margin-top:5px">
-            <button class="btn btn-xs btn-gh" onclick="openZoneModal('${z.id}','${fid}','${S.curSeason}')" title="Edit planting info">✏ Info</button>
+          <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+            <button class="btn btn-xs btn-gh" onclick="openZoneModal('${z.id}','${fid}','${S.curSeason}')" title="Edit planting info">${_ro?'👁 View':'✏ Info'}</button>
             ${z.geom?`<button class="btn btn-xs btn-gh" onclick="setView('map',document.querySelector('[data-view=map]'));selectPlanting('${z.id}','${fid}')" title="Go to map and select this planting">⬡ On Map</button>`
             :`<button class="btn btn-xs btn-gh" onclick="setView('map',document.querySelector('[data-view=map]'));startSliceMode('${fid}')" title="Slice field to create zones">⚡ Slice</button>`}
           </div>
         </div>`).join('')}
-        <div class="zc" style="cursor:pointer;opacity:.5;justify-content:center;display:flex;align-items:center;" onclick="openZoneModal('','${fid}','${S.curSeason}')">
+        ${_ro?'':`<div class="zc" style="cursor:pointer;opacity:.5;justify-content:center;display:flex;align-items:center;" onclick="openZoneModal('','${fid}','${S.curSeason}')">
           <div style="font-size:24px;color:var(--sage)">＋</div>
-        </div>
+        </div>`}
       </div>`
     :`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Plantings</div>
-        <button class="btn btn-og btn-sm" onclick="openZoneModal('','${fid}','${S.curSeason}')">＋ Add Planting</button>
+        ${_ro?'<span style="font-size:11px;color:var(--muted)">None recorded</span>':`<button class="btn btn-og btn-sm" onclick="openZoneModal('','${fid}','${S.curSeason}')">＋ Add Planting</button>`}
       </div>`}
 
     ${f.vrt?`
@@ -3579,11 +4192,11 @@ function renderFieldDetail(fid){
         })()}
         </tbody>
       </table>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">Total: <strong style="color:#99aaff">${((f.vrtZoneDefs||[]).reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)} ac</strong> of ${(+f.acres).toFixed(1)} ac boundary</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">Total: <strong style="color:#99aaff">${((f.vrtZoneDefs||[]).reduce((s,z)=>s+(+z.acres||0),0)).toFixed(1)} ac</strong> of ${(+fAc(f)).toFixed(1)} ac boundary</div>
     </div>`:``}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
       <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Programs — ${S.curSeason}</div>
-      <button class="btn btn-g btn-sm" onclick="openAssign('${fid}')">＋ Add</button>
+      ${_ro?'':`<button class="btn btn-g btn-sm" onclick="openAssign('${fid}')">＋ Add</button>`}
     </div>
     ${(()=>{
       const cropZones2=S.zones.filter(z=>z.fieldId===fid&&z.crop&&z.crop!=='Unknown');
@@ -3622,7 +4235,7 @@ function renderProgCard(fp,pr,fid){
   const czZone=fp.cropZoneId?S.zones.find(x=>x.id===fp.cropZoneId):null;
   // Compute prorate factor: if program targets a planting, scale zone acres proportionally
   const _fpAcres=acresForFP(f,fp);
-  const _fieldAcres=+(f&&f.acres||0);
+  const _fieldAcres=+(f&&fAc(f)||0);
   const _proRate=(_fieldAcres>0&&_fpAcres<_fieldAcres-0.5)?_fpAcres/_fieldAcres:1;
   const _isPlantingScoped=fp.plantingIds&&fp.plantingIds.length>0;
   const _typeBorderColor={herbicide:'#40A020',fungicide:'#2060C0',insecticide:'#C08010','fert-fall':'#E8A040','fert-spring':'#40B860',chemical:'#9060CC',fertilizer:'#9060CC',seed:'#20A060',other:'#888888'}[pr.type]||'var(--rule)';
@@ -3673,6 +4286,7 @@ function renderProgCard(fp,pr,fid){
       <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${esc(pr.timing||'')}</span>
       <div class="pc-acts" onclick="event.stopPropagation()">
         ${isVRT?`<button class="btn btn-a btn-xs" onclick="openVrtRates('${fp.id}','${fid}')" title="Set per-zone rates">&#x26A1; Zone Rates</button>`:''}
+        ${(!(fp.plantingIds&&fp.plantingIds.length)&&!fp.treatmentAreaId&&getPlantings(fid,fp.season).filter(p=>(+p.acres||0)>0).length>1&&!isSeasonLocked(fp.season))?`<button class="btn btn-xs btn-gh" onclick="event.stopPropagation();splitFPByPlanting('${fp.id}','${fid}')" title="Make one record per planting so each can be marked applied on its own (e.g. soybean stubble spread now, corn stalks later)">⑂ Per Planting</button>`:''}
         <button class="btn btn-xs ${fp.status==='applied'?'btn-g':'btn-gh'}" onclick="event.stopPropagation();toggleFPStatus('${fp.id}','${fid}')" title="${fp.status==='applied'?'Mark as Planned':'Mark as Applied'}">
           ${fp.status==='applied'?'✓ Applied':'📋 Planned'}
         </button>
@@ -3766,7 +4380,7 @@ function renderProgCard(fp,pr,fid){
             return `<td style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#d4e8ff;font-weight:700">${_zRate.toFixed(0)}</td>`;
           }).join(''):'';
           // Prorated total acres
-          const _fAc2=+(f&&f.acres||0);
+          const _fAc2=+(f&&fAc(f)||0);
           const _mp2=fp.plantingIds&&fp.plantingIds.length?(S.plantings||[]).find(p=>fp.plantingIds.includes(p.id)):null;
           const _pr2=(_mp2&&_fAc2>0)?Math.min(1,(+(_mp2.acres||_fAc2))/_fAc2):1;
           const _effAc2=vrtDefs.reduce((s,z)=>s+(+(z.acres||0))*_pr2,0);
@@ -3808,7 +4422,7 @@ function renderProgCard(fp,pr,fid){
             return `<td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);font-weight:600">${typeof zr==="number"?_fmtN(zr,0):zr}</td>`;
           }).join(''):'';
           // Pro-rate zone acres if this is a split-planting field
-          const _fieldAc=+(f&&f.acres||0);
+          const _fieldAc=+(f&&fAc(f)||0);
           const _plantings=f?(S.plantings||[]).filter(function(p){return p.fieldId===f.id&&p.season===S.curSeason&&p.crop&&p.crop!=='Unknown';}):[];
           const _matchPlanting=fp.plantingIds&&fp.plantingIds.length?_plantings.find(function(p){return fp.plantingIds.includes(p.id);}):null;
           const _proRate=(_matchPlanting&&_fieldAc>0)?Math.min(1,(+_matchPlanting.acres||_fieldAc)/_fieldAc):1;
@@ -3942,7 +4556,7 @@ function deleteRx(id,fid){ if(!confirm('Delete prescription?'))return; S.prescri
 function openZoneModal(zid,fid,season){
   var s=season||S.curSeason;
   var z=zid?(S.plantings.find(function(x){return x.id===zid;})||{}):{};  var f=S.fields.find(function(x){return x.id===fid;});
-  var boundaryAc=f?+f.acres||0:0;
+  var boundaryAc=f?+fAc(f)||0:0;
   var otherPs=S.plantings.filter(function(x){return x.fieldId===fid&&x.season===s&&x.id!==zid;});
   var otherAc=otherPs.reduce(function(sum,x){return sum+(+x.acres||0);},0);
   var plantingCount=S.plantings.filter(function(x){return x.fieldId===fid&&x.season===s;}).length;
@@ -3986,7 +4600,7 @@ function zoneUpdateBalance(){
   var zid=document.getElementById('zone-id').value;
   var sel=document.getElementById('zone-season'); var s=sel?sel.value:S.curSeason;
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f)return;
-  var boundaryAc=+f.acres||0;
+  var boundaryAc=+fAc(f)||0;
   var otherPs=S.plantings.filter(function(x){return x.fieldId===fid&&x.season===s&&x.id!==zid;});
   var otherAc=otherPs.reduce(function(sum,x){return sum+(+x.acres||0);},0);
   var enteredAc=parseFloat(document.getElementById('zone-ac').value)||0;
@@ -4012,7 +4626,7 @@ function saveZone(){
 
   var enteredAc=parseFloat(document.getElementById('zone-ac').value)||0;
   var f=S.fields.find(function(x){return x.id===fid;});
-  var boundaryAc=f?+f.acres||0:0;
+  var boundaryAc=f?+fAc(f)||0:0;
   var otherPs=S.plantings.filter(function(x){return x.fieldId===fid&&x.season===s&&x.id!==zid;});
   var otherAc=otherPs.reduce(function(sum,x){return sum+(+x.acres||0);},0);
   var balanceAc=Math.max(0,+(boundaryAc-otherAc).toFixed(1));
@@ -4115,7 +4729,7 @@ function activateTool(name){
       var _pp=S.plantings.find(function(x){return x.id===toolPlantingId;});
       if(!_pp){cancelTool();return;}
       if(!_pp.geom){
-        var _fbg=S.fieldGeoms[toolFieldId||fid];
+        var _fbg=fGeom(toolFieldId||fid);
         if(!_fbg){cancelTool();alert('No field boundary to use. Draw the field boundary first.');return;}
         // Compute remainder: field minus all sibling plantings that have geometry
         var _siblings=(S.plantings||[]).filter(function(p){return p.fieldId===(toolFieldId||fid)&&p.season===S.curSeason&&p.id!==_pp.id&&p.geom;});
@@ -4179,25 +4793,25 @@ function activateTool(name){
       }
     } else {
       // Editing field boundary
-      if(!fid||!S.fieldGeoms[fid]){cancelTool();alert('Open a field with a boundary first.');return;}
+      if(!fid||!fGeom(fid)){cancelTool();alert('Open a field with a boundary first.');return;}
       var _bf=S.fields.find(function(x){return x.id===fid;});
       if(_bf&&_bf.boundaryLocked){cancelTool();alert('Boundary is locked. Use the \uD83D\uDD13 Lock Boundary button to unlock.');return;}
       editingFid=fid; renderMapFields();
       var eg=new L.FeatureGroup().addTo(map);
-      L.geoJSON(S.fieldGeoms[fid],{style:{color:'#FFE066',fillColor:'#FFE066',fillOpacity:.2,weight:2.5,dashArray:'5,5'}})
+      L.geoJSON(fGeom(fid),{style:{color:'#FFE066',fillColor:'#FFE066',fillOpacity:.2,weight:2.5,dashArray:'5,5'}})
         .eachLayer(function(l){ eg.addLayer(l); });
       var ec=new L.EditToolbar.Edit(map,{featureGroup:eg,selectedPathOptions:{maintainColor:true,opacity:0.9}});
       ec.enable();
       editingLayer=eg; editingLayer._editCtrl=ec; editingLayer._editGroup=eg;
       var eb=document.getElementById('btnEditField');
       if(eb){ eb.textContent='\u2713 Save Shape'; eb.onclick=function(){finishEditBoundary(eg,ec,fid); eb.textContent='\u26A1 Edit Shape'; eb.onclick=function(){activateTool('edit');};}; }
-      if(hint) hint.textContent='Drag vertices to reshape. Click \u2713 Save Shape or Esc to cancel.';
+      if(hint) hint.textContent='Drag vertices to reshape \u00b7 click empty map to save \u00b7 Esc to cancel \u00b7 plantings refit automatically';
     }
   } else if(name==='split'){
     var fid2=toolFieldId||curFid; if(!fid2){cancelTool();alert('Open a field first.');return;}
     splittingFieldId=fid2; sliceMode=false;
     if(hint) hint.textContent='Draw zone polygons — click \u2714 Done Zones when finished. Esc to cancel.';
-    if(S.fieldGeoms[fid2]) map.fitBounds(L.geoJSON(S.fieldGeoms[fid2]).getBounds(),{padding:[30,30]});
+    if(fGeom(fid2)) map.fitBounds(L.geoJSON(fGeom(fid2)).getBounds(),{padding:[30,30]});
     if(map.hasLayer(drawControl)) try{map.removeControl(drawControl);}catch(e){}
     map.addControl(drawControl);
     _enableDraw(new L.Draw.Polygon(map,{shapeOptions:{color:'#9060CC',fillOpacity:.3,weight:2}}));
@@ -4211,8 +4825,8 @@ function activateTool(name){
       if(!_sp||!_sp.geom){cancelTool();alert('This planting has no drawn boundary — slice the field first to create zones.');return;}
       _sliceGeomSrc=_sp.geom;
     } else {
-      if(!S.fieldGeoms[fid3]){cancelTool();alert('Draw the field boundary first.');return;}
-      _sliceGeomSrc=S.fieldGeoms[fid3];
+      if(!fGeom(fid3)){cancelTool();alert('Draw the field boundary first.');return;}
+      _sliceGeomSrc=fGeom(fid3);
     }
     sliceMode=true; splittingFieldId=fid3; _sliceFieldFid=fid3; drawingField=false;
     _sliceSourceGeom=_sliceGeomSrc; // store so onMapDrawn knows what to slice
@@ -4364,7 +4978,7 @@ function renderMapFields(){
     } else { fb.style.display='none'; }
   }
   S.fields.forEach(f=>{
-    if(!S.fieldGeoms[f.id]) return;
+    if(!fGeom(f.id)) return;
     // Apply display filter
     if(mapDisplayFilter){
       if(mapDisplayFilter.type==='grower'&&f.growerId!==mapDisplayFilter.id) return;
@@ -4404,7 +5018,7 @@ function renderMapFields(){
     const fieldFillColor=(_hasPlantingGeoms&&!_hasSpecialState&&!_filterCrop)?'#FFFFFF':(isDimmed||isEditTarget?'#333':baseColor);
     const fillOpacity=isDimmed?.08:isEditTarget?.04:isSelected?.55:_hasPlantingGeoms?0:.35;
     const fieldOpacity=isDimmed?.35:isEditTarget?.25:1;
-    const layer=L.geoJSON(S.fieldGeoms[f.id],{style:{color:fieldOutlineColor,fillColor:fieldFillColor,fillOpacity,weight,dashArray,opacity:fieldOpacity}});
+    const layer=L.geoJSON(fGeom(f.id),{style:{color:fieldOutlineColor,fillColor:fieldFillColor,fillOpacity,weight,dashArray,opacity:fieldOpacity}});
     layer._fid=f.id;
     layer.on('click',(e)=>{
       L.DomEvent.stopPropagation(e); // prevent map click deselect handler from firing
@@ -4421,7 +5035,7 @@ function renderMapFields(){
     });
     // Tooltip — when filtering, show the filtered crop and just the matching planting's acres. When not filtering, show all crops on the field.
     var _tipCrop=displayCrop||(_fldCrops.length?_fldCrops.join(' + '):'No crop');
-    var _tipAc=f.acres;
+    var _tipAc=fAc(f);
     if(_filterCrop){
       var _matchPs=(S.plantings||[]).filter(function(p){return p.fieldId===f.id&&p.season===S.curSeason&&p.crop===_filterCrop;});
       if(_matchPs.length){var _sumAc=_matchPs.reduce(function(s,p){return s+(+p.acres||0);},0);if(_sumAc) _tipAc=Math.round(_sumAc*10)/10;}
@@ -4429,7 +5043,7 @@ function renderMapFields(){
     layer.bindTooltip(`<b>${f.name}</b>${f.alias?'<br><i>'+f.alias+'</i>':''}<br><small>${_tipCrop} · ${_tipAc}ac</small>`,{sticky:true,className:'leaflet-tooltip'});
     fieldLayerGroup.addLayer(layer);
     // Treatment areas (field-level, not season-specific)
-    (S.treatmentAreas||[]).filter(function(a){return a.fieldId===f.id&&a.geom;}).forEach(function(a){
+    (S.treatmentAreas||[]).filter(function(a){return a.fieldId===f.id&&a.geom&&(!a.season||a.season===S.curSeason);}).forEach(function(a){
       var _aIsSelected=curTreatmentAreaId===a.id;
       var al=L.geoJSON(a.geom,{style:{color:_aIsSelected?'#FFE066':'#9060CC',fillColor:'#9060CC',fillOpacity:_aIsSelected?.35:.18,weight:_aIsSelected?2.5:1.5,dashArray:_aIsSelected?null:'4,6'}});
       al.on('click',function(e){
@@ -4508,7 +5122,7 @@ function onMapFieldClick(fid){
   curFid=fid;
   renderTree();
   showMapPanel(fid);
-  const hasBoundary=!!S.fieldGeoms[fid];
+  const hasBoundary=!!fGeom(fid);
   // Field-specific boundary dropdown items
   toolFieldId=fid;
   var show=function(id,v){var el=document.getElementById(id);if(el)el.style.display=v?'':'none';};
@@ -4518,7 +5132,7 @@ function onMapFieldClick(fid){
 }
 
 function _renderTreatmentAreaCards(fid){
-  var areas=(S.treatmentAreas||[]).filter(function(a){return a.fieldId===fid;});
+  var areas=(S.treatmentAreas||[]).filter(function(a){return a.fieldId===fid&&(!a.season||a.season===S.curSeason);});
   if(!areas.length) return '';
   var html='<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px">Treatment Areas</div>';
   areas.forEach(function(a){
@@ -4549,11 +5163,12 @@ function showMapPanel(fid){
   const plantings=getPlantings(fid); // from S.plantings for curSeason
   const progs=S.fieldProgs.filter(fp=>fp.fieldId===fid&&fp.season===S.curSeason);
   const rxs=S.prescriptions.filter(r=>r.fieldId===fid&&r.season===S.curSeason);
+  const _ro=isSeasonLocked(S.curSeason);
   // Build crop badges — one per crop with that crop's actual acres (planting acres if plantings exist, else field acres)
   const cropBadgesHtml=crops.length?crops.map(c=>{
     var ac=fieldCropAcres(fid,c);
     return `<span class="cb ${cropClass(c)}">${c}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-right:4px">${Math.round(ac*10)/10}ac</span>`;
-  }).join(''):`<span style="font-size:12px;color:var(--muted)">No crop set</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${f.acres}ac</span>`;
+  }).join(''):`<span style="font-size:12px;color:var(--muted)">No crop set</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${fAc(f)}ac</span>`;
 
   document.getElementById('mpTitle').textContent=f.name+(f.alias?` — "${f.alias}"`:'');
   document.getElementById('mapPanel').classList.remove('hidden');
@@ -4571,41 +5186,89 @@ function showMapPanel(fid){
     </div>
 
 
+    ${_mpBoundarySection(f,plantings)}
+
     <div class="mp-section">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span class="mp-lbl">Plantings — ${S.curSeason}</span>
-        <div style="display:flex;gap:5px">
-          <div style="position:relative;display:inline-block" id="add-plant-wrap-${fid}"><button class="btn btn-og btn-sm" onclick="toggleAddPlantMenu('${fid}')">＋ Add ▾</button><div id="add-plant-menu-${fid}" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:var(--white);border:1.5px solid var(--rule);border-radius:var(--r);box-shadow:0 4px 12px rgba(0,0,0,.15);min-width:175px;padding:4px 0"><div onclick="closeAddPlantMenu('${fid}');openZoneModal('','${fid}','${S.curSeason}')" class="add-plant-opt">📋 Add Info Only</div><div onclick="closeAddPlantMenu('${fid}');startDrawPlanting('${fid}')" class="add-plant-opt">✏️ Draw Boundary</div><div onclick="closeAddPlantMenu('${fid}');plantWholeField('${fid}')" class="add-plant-opt">🌾 Plant Whole Field</div><div onclick="closeAddPlantMenu('${fid}');triggerPlantingShp('${fid}')" class="add-plant-opt">📦 Upload Shapefile</div></div></div>
-          ${S.fieldGeoms[fid]?`<button class="btn btn-a btn-sm" onclick="startSliceMode('${fid}')">&#x26A1; Slice</button>`:''}
-        </div>
+        <span class="mp-lbl">Plantings — ${S.curSeason}${_ro?' 🔒':''}</span>
+        ${_ro?'':`<div style="display:flex;gap:5px">
+          <div style="position:relative;display:inline-block" id="add-plant-wrap-${fid}"><button class="btn btn-og btn-sm" onclick="toggleAddPlantMenu('${fid}')">＋ Add ▾</button><div id="add-plant-menu-${fid}" style="display:none;position:absolute;top:100%;right:0;z-index:999;background:var(--white);border:1.5px solid var(--rule);border-radius:var(--r);box-shadow:0 4px 12px rgba(0,0,0,.15);min-width:190px;padding:4px 0"><div onclick="closeAddPlantMenu('${fid}');openZoneModal('','${fid}','${S.curSeason}')" class="add-plant-opt">📋 Add Info Only</div><div onclick="closeAddPlantMenu('${fid}');startDrawPlanting('${fid}')" class="add-plant-opt">✏️ Draw Boundary</div><div onclick="closeAddPlantMenu('${fid}');plantWholeField('${fid}')" class="add-plant-opt">🌾 Plant Whole Field</div><div onclick="closeAddPlantMenu('${fid}');openEquipBoundaryImport('${fid}','newp')" class="add-plant-opt">📦 From File (equipment / shapefile)</div></div></div>
+          ${fGeom(fid)?`<button class="btn btn-a btn-sm" onclick="startSliceMode('${fid}')">&#x26A1; Slice</button>`:''}
+        </div>`}
       </div>
       ${plantings.length?plantings.map(p=>{
         const isSel=p.id===curPlantingId;
         const pCol=cropColor(p.crop||'')||p.color||'#888';
+        const apps=progs.filter(fp=>fp.plantingIds&&fp.plantingIds.indexOf(p.id)>=0);
+        const appChips=apps.map(fp=>{const pr=S.programs.find(x=>x.id===fp.programId);if(!pr)return '';const done=fp.status==='applied';return `<span title="${esc(pr.name)} — ${done?'applied':'planned'}" style="font-size:9.5px;padding:1px 6px;border-radius:8px;white-space:nowrap;${done?'background:rgba(80,160,32,.15);color:var(--leaf);border:1px solid rgba(80,160,32,.4)':'background:rgba(128,128,128,.1);color:var(--muted);border:1px solid var(--rule)'}">${done?'✓':'○'} ${esc(pr.name.length>22?pr.name.slice(0,21)+'…':pr.name)}</span>`;}).join('');
         return `<div id="mp-planting-${p.id}" style="display:flex;flex-direction:column;gap:0;margin-bottom:5px;border-radius:var(--r);border:${isSel?'2px solid #FFE066':'1px solid var(--rule)'};background:${isSel?'rgba(255,224,102,.07)':'var(--fog)'};overflow:hidden">
           <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer" onclick="selectPlanting('${p.id}','${fid}')">
             <div style="width:10px;height:10px;border-radius:50%;background:${pCol};flex-shrink:0"></div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:600">${esc(p.crop||p.name||'Unassigned')} ${p.verified?'<span style="color:var(--gold);font-size:10px">&#x2713;</span>':''}</div>
-              <div style="font-size:10.5px;color:var(--muted)">${p.variety?esc(p.variety):''} ${p.acres?`<span style="font-family:'IBM Plex Mono',monospace">${p.acres} ac</span>`:''}</div>
+              <div style="font-size:12px;font-weight:600">${esc(p.crop||p.name||'Unassigned')} ${p.verified?'<span style="color:var(--gold);font-size:10px">&#x2713;</span>':''}${p.geom?'':' <span style="font-size:9px;font-weight:400;color:var(--muted)" title="No drawn shape — acres only">(acres only)</span>'}</div>
+              <div style="font-size:10.5px;color:var(--muted)">${p.variety?esc(p.variety):''} ${p.acres?`<span style="font-family:'IBM Plex Mono',monospace">${_fmtN(p.acres,1)} ac</span>`:''}</div>
+              ${appChips?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">${appChips}</div>`:''}
             </div>
             ${isSel?'<span style="font-size:10px;color:#FFE066">&#x25CF;</span>':''}
           </div>
-          ${isSel?`<div style="display:flex;gap:4px;padding:0 9px 8px">
-            <button class="btn btn-xs btn-gh" onclick="openZoneModal('${p.id}','${fid}','${S.curSeason}')">&#x270F; Info</button>
-            ${(p.geom||S.fieldGeoms[fid])?`<button class="btn btn-xs btn-a" onclick="editPlantingBoundary('${p.id}','${fid}')">&#x26A1; Edit Border</button>
-            <button class="btn btn-xs btn-gh" onclick="mergePlantings('${p.id}','${fid}')" title="Merge with another planting boundary">⊕ Merge</button>`:``}
-            <button class="btn btn-xs btn-r" onclick="deletePlantingFromPanel('${p.id}','${fid}')">&#x1F5D1; Delete</button>
-
+          ${isSel&&!_ro?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 9px 6px">
+            <select class="fc" style="font-size:11px;padding:2px 4px;width:auto" onchange="quickEditPlanting('${p.id}','crop',this.value)">${cropOptions(p.crop||'',true,true)}</select>
+            <input class="ac-edit" type="number" step="0.1" min="0" value="${_fmtN(p.acres,1)}" title="Planting acres — press Enter to save" onkeydown="if(event.key==='Enter')this.blur()" onchange="quickEditPlanting('${p.id}','acres',this.value)"><span style="font-size:10px;color:var(--muted)">ac</span>
+            <input class="fc" style="font-size:11px;padding:2px 5px;width:90px" placeholder="Variety" value="${esc(p.variety||'')}" onchange="quickEditPlanting('${p.id}','variety',this.value)">
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;padding:0 9px 8px">
+            <button class="btn btn-xs btn-gh" onclick="openZoneModal('${p.id}','${fid}','${S.curSeason}')">&#x270F; More</button>
+            ${(p.geom||fGeom(fid))?`<button class="btn btn-xs btn-a" onclick="editPlantingBoundary('${p.id}','${fid}')">&#x26A1; Edit Border</button>`:``}
+            <button class="btn btn-xs btn-gh" onclick="openEquipBoundaryImport('${fid}','p:${p.id}')" title="Replace this planting's border from an equipment / shapefile export">📥 From File</button>
+            ${p.geom?`<button class="btn btn-xs btn-gh" onclick="slicePlanting('${p.id}','${fid}')" title="Slice this planting into pieces">✂ Slice</button><button class="btn btn-xs btn-gh" onclick="mergePlantings('${p.id}','${fid}')" title="Merge with another planting boundary">⊕ Merge</button>`:''}
+            <button class="btn btn-xs btn-gh" onclick="openAssign('${fid}','${p.id}')" title="Add a program to just this planting">＋ Program</button>
+            <button class="btn btn-xs btn-r" onclick="deletePlantingFromPanel('${p.id}','${fid}')">&#x1F5D1;</button>
           </div>`:''}
+          ${isSel&&_ro?`<div style="display:flex;gap:4px;padding:0 9px 8px"><button class="btn btn-xs btn-gh" onclick="openZoneModal('${p.id}','${fid}','${S.curSeason}')">👁 View Info</button></div>`:''}
         </div>`;}).join(''):
-        `<div style="font-size:11.5px;color:var(--muted);padding:8px 0">No plantings yet — add one or use Slice to split the field</div>`
+        `<div style="font-size:11.5px;color:var(--muted);padding:8px 0">${_ro?'No plantings were recorded for '+S.curSeason+'.':'No plantings yet — add one or use Slice to split the field'}</div>`
       }
       ${_renderTreatmentAreaCards(fid)}
-      ${S.fieldGeoms[fid]?`<button class="btn btn-sm" style="margin-top:4px;${(S.fields.find(x=>x.id==='${fid}')||{}).boundaryLocked?'background:rgba(220,162,40,.18);color:var(--gold);border-color:var(--gold)':'background:rgba(80,80,80,.2);color:var(--muted);border-color:var(--rule)'}" onclick="toggleBoundaryLock('${fid}')">${(S.fields.find(x=>x.id==='${fid}')||{}).boundaryLocked?'&#x1F512; Locked':'&#x1F513; Lock Boundary'}</button>`:''}
     </div>
 
   `;
+}
+
+// v41: boundary / acres block for the map panel (season-aware, inline-editable)
+function _mpBoundarySection(f,plantings){
+  var fid=f.id, ro=isSeasonLocked(S.curSeason);
+  var g=fGeom(fid);
+  var fieldAc=fAc(f);
+  var geoAc=g?acresFromGeojson(_feat(g)):0;
+  var planted=plantings.reduce(function(s,p){return s+(+p.acres||0);},0);
+  var unas=fieldAc-planted;
+  var note=seasonBoundaryNote(fid);
+  var h='<div class="mp-section">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="mp-lbl">Boundary — '+S.curSeason+(ro?' 🔒':'')+'</span>';
+  if(g&&!ro) h+='<button class="btn btn-xs" style="'+(f.boundaryLocked?'background:rgba(220,162,40,.18);color:var(--gold);border-color:var(--gold)':'background:rgba(80,80,80,.12);color:var(--muted);border-color:var(--rule)')+'" onclick="toggleBoundaryLock(\''+fid+'\')" title="Prevent accidental reshaping of the field boundary">'+(f.boundaryLocked?'&#x1F512; Shape locked':'&#x1F513; Lock shape')+'</button>';
+  h+='</div>';
+  if(ro) h+='<div class="fd-ro-note">🔒 '+S.curSeason+' is a locked record.</div>';
+  h+='<div class="mp-ac-row">Field '
+    +(ro?'<strong style="font-family:IBM Plex Mono,monospace;color:var(--ink)">'+fieldAc.toFixed(1)+'</strong>'
+        :'<input class="ac-edit" type="number" step="0.1" min="0" value="'+fieldAc.toFixed(1)+'" title="Field acres for '+S.curSeason+' — press Enter to save" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="editFieldAcresInline(\''+fid+'\',this.value)">')
+    +' ac';
+  if(plantings.length){
+    h+=' · Planted <strong style="font-family:IBM Plex Mono,monospace;color:var(--leaf)">'+planted.toFixed(1)+'</strong>';
+    if(Math.abs(unas)>=0.1) h+=' · <strong style="font-family:IBM Plex Mono,monospace;color:var(--gold)">'+(unas>0?unas.toFixed(1)+' unassigned':Math.abs(unas).toFixed(1)+' over')+'</strong>';
+    else h+=' · <span style="color:var(--sage)">✓</span>';
+  }
+  h+='</div>';
+  if(g&&Math.abs(geoAc-fieldAc)>=0.5) h+='<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">Shape measures '+geoAc.toFixed(1)+' ac'+(ro?'':' · <a href="#" onclick="event.preventDefault();resetFieldAcresToBoundary(\''+fid+'\')" style="color:var(--sky)">use shape acres</a>')+'</div>';
+  if(note) h+='<div style="font-size:10.5px;color:var(--sky);margin-bottom:4px">⏱ '+esc(note)+'</div>';
+  if(!ro){
+    h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">';
+    h+='<button class="btn btn-xs btn-og" onclick="openEquipBoundaryImport(\''+fid+'\',\'field\')" title="Replace the field boundary from an equipment export / shapefile / GeoJSON">📥 Boundary from File</button>';
+    if(g) h+='<button class="btn btn-xs btn-a" onclick="toolPlantingId=null;curPlantingId=null;toolFieldId=\''+fid+'\';activateTool(\'edit\')" title="Drag vertices to reshape the field boundary">⚡ Edit Shape</button>';
+    if(plantings.length) h+='<button class="btn btn-xs btn-gh" onclick="refitPlantingsToField(\''+fid+'\')" title="Clip/extend this season\'s plantings so they match the field boundary and acres">⟲ Fit Plantings</button>';
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
 }
 
 function closeMapPanel(){
@@ -4615,7 +5278,7 @@ function closeMapPanel(){
   document.getElementById('btnFinishSplit').style.display='none';
   if(activeTool) cancelTool();
 }
-function focusField(fid){ if(!S.fieldGeoms[fid]) return; const layer=L.geoJSON(S.fieldGeoms[fid]); map.fitBounds(layer.getBounds(),{padding:[40,40]}); }
+function focusField(fid){ if(!fGeom(fid)) return; const layer=L.geoJSON(fGeom(fid)); map.fitBounds(layer.getBounds(),{padding:[40,40]}); }
 
 function selectPlanting(pid, fid){
   curPlantingId=pid;
@@ -4629,8 +5292,8 @@ function selectPlanting(pid, fid){
   var _p=S.plantings.find(function(x){return x.id===pid;});
   if(_p&&_p.geom){
     try{ var _b=L.geoJSON(_p.geom).getBounds(); if(_b.isValid()) map.fitBounds(_b,{padding:[60,60]}); }catch(e){}
-  } else if(S.fieldGeoms[fid]){
-    try{ var _fb=L.geoJSON(S.fieldGeoms[fid]).getBounds(); if(_fb.isValid()) map.fitBounds(_fb,{padding:[60,60]}); }catch(e){}
+  } else if(fGeom(fid)){
+    try{ var _fb=L.geoJSON(fGeom(fid)).getBounds(); if(_fb.isValid()) map.fitBounds(_fb,{padding:[60,60]}); }catch(e){}
   }
   setTimeout(function(){
     var el=document.getElementById('mp-planting-'+pid);
@@ -4641,7 +5304,7 @@ function selectPlanting(pid, fid){
 function reconcileAcres(fid){
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return;
   var plantings=S.plantings.filter(function(p){return p.fieldId===fid&&p.season===S.curSeason;});
-  var fieldAc=+f.acres||0;
+  var fieldAc=+fAc(f)||0;
   var plantingAc=plantings.reduce(function(s,p){return s+(+p.acres||0);},0);
   var over=plantingAc>fieldAc;
   var diff=Math.abs(plantingAc-fieldAc).toFixed(1);
@@ -4769,7 +5432,8 @@ function carryForwardBorders(fid){
 function deletePlantingFromPanel(pid, fid){
   var p=S.plantings.find(function(x){return x.id===pid;}); if(!p) return;
   var label=p.crop||p.name||'planting';
-  if(!confirm('Delete '+label+'? This cannot be undone.')) return;
+  var _appl=S.fieldProgs.filter(function(fp){return (fp.plantingIds||[]).indexOf(pid)>=0;});
+  if(!confirm('Delete '+label+'?'+(_appl.length?'\n\n'+_appl.length+' program record'+(_appl.length>1?'s':'')+' target this planting'+(_appl.some(function(fp){return fp.status==='applied';})?' (including APPLIED ones)':'')+'. Records that only target this planting will be removed.':'')+'\n\nYou can undo with ↩ Undo.')) return;
   pushUndo('Delete planting: '+label);
   S.plantings=S.plantings.filter(function(x){return x.id!==pid;});
   // Clear fieldSeason crop if no remaining plantings have a crop assigned
@@ -4852,8 +5516,8 @@ function finishEditTreatmentArea(editGroup,editCtrl,aid,fid){
   var ta=(S.treatmentAreas||[]).find(function(x){return x.id===aid;}); if(!ta)return;
   editGroup.eachLayer(function(l){
     var gj=l.toGeoJSON?l.toGeoJSON():null; if(!gj||!gj.geometry)return;
-    if(S.fieldGeoms[fid]&&window.turf&&turf.intersect){
-      try{var ff=S.fieldGeoms[fid].type==='Feature'?S.fieldGeoms[fid]:{type:'Feature',geometry:S.fieldGeoms[fid],properties:{}};var cl=turf.intersect(gj,ff);if(cl)gj=cl;}catch(e){}
+    if(fGeom(fid)&&window.turf&&turf.intersect){
+      try{var ff=fGeom(fid).type==='Feature'?fGeom(fid):{type:'Feature',geometry:fGeom(fid),properties:{}};var cl=turf.intersect(gj,ff);if(cl)gj=cl;}catch(e){}
     }
     ta.geom=gj;
     var ac=acresFromGeojson(gj); if(ac>0) ta.acres=parseFloat(ac.toFixed(1));
@@ -4898,61 +5562,7 @@ document.addEventListener('click',function(e){
 });
 
 // Tool fns now delegated to activateTool()
-var _singleBorderFid=null;
-function openFieldBorderImport(fid){
-  _singleBorderFid=fid||toolFieldId||curFid;
-  if(!_singleBorderFid){alert('Select a field first.');return;}
-  document.getElementById('shpSingleFieldFile').value='';
-  document.getElementById('shpSingleFieldFile').click();
-}
-function handleSingleFieldBorder(e){
-  var file=e.target.files[0]; if(!file)return;
-  var fid=_singleBorderFid;
-  var f=S.fields.find(function(x){return x.id===fid;});
-  if(!f){alert('Field not found.');return;}
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    shp(ev.target.result).then(function(gj){
-      var features=Array.isArray(gj)?gj.flatMap(function(g){return g&&g.features?g.features:[];}):((gj&&gj.features)||[]);
-      if(!features.length){alert('No features found in shapefile.');return;}
-      // Show picker modal
-      window._singleBorderFeatures=features;
-      window._singleBorderFid=fid;
-      var modal=document.getElementById('ov-singleborder');
-      document.getElementById('sb-fieldname').textContent=f.name;
-      var list=document.getElementById('sb-feat-list');
-      list.innerHTML=features.map(function(feat,i){
-        var ac=window.turf?turf.area(feat)/4046.86:0;
-        var cols=Object.keys(feat.properties||{}).slice(0,3).map(function(k){return esc(k)+': '+esc(String(feat.properties[k]||''));}).join(' · ');
-        return '<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-bottom:1px solid var(--rule2);cursor:pointer">'
-          +'<input type="radio" name="sb-feat" value="'+i+'"'+(i===0?' checked':'')+'> '
-          +'<span style="flex:1"><strong>Feature '+(i+1)+'</strong>'+(ac?' &mdash; '+ac.toFixed(1)+' ac':'')+'</span>'
-          +'<span style="font-size:10px;color:var(--muted)">'+cols+'</span>'
-          +'</label>';
-      }).join('');
-      openM('singleborder');
-    }).catch(function(err){alert('Could not read shapefile: '+err.message);});
-  };
-  reader.readAsArrayBuffer(file);
-}
-function confirmSingleBorder(){
-  var sel=document.querySelector('input[name="sb-feat"]:checked');
-  if(!sel){alert('Select a feature.');return;}
-  var feat=window._singleBorderFeatures[+sel.value];
-  var fid=window._singleBorderFid;
-  var f=S.fields.find(function(x){return x.id===fid;});
-  if(!f||!feat)return;
-  pushUndo('Import boundary: '+f.name);
-  var geomCopy=JSON.parse(JSON.stringify(feat));
-  geomCopy.properties={fieldId:fid,name:f.name};
-  S.fieldGeoms[fid]=geomCopy;
-  var ac=calcAcresFromGeom(feat.geometry);
-  if(ac>0) f.acres=parseFloat(ac.toFixed(1));
-  save(); closeM('singleborder'); renderMapFields(); renderTree(); renderPlan();
-  if(S.fieldGeoms[fid]) map.fitBounds(L.geoJSON(S.fieldGeoms[fid]).getBounds(),{padding:[40,40]});
-  showMapPanel(fid);
-  document.getElementById('mapInfo').textContent='Boundary imported for '+f.name+'.';
-}
+// v41: openFieldBorderImport / handleSingleFieldBorder / confirmSingleBorder moved to the SEASON RECORDS block
 
 function startDrawField(){ activateTool('draw'); }
 function startSplitMode(fid){ toolFieldId=fid||curFid; activateTool('split'); }
@@ -5016,7 +5626,7 @@ function closeAddPlantMenu(fid){var m=document.getElementById('add-plant-menu-'+
 function plantWholeField(fid){
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f) return;
   var crop=getFieldCrop(fid,S.curSeason)||'';
-  var p={id:uid(),fieldId:fid,season:S.curSeason,name:crop||'Planting 1',crop:crop,variety:'',acres:+f.acres,acresVerified:false,geom:S.fieldGeoms[fid]||null,color:'#4a8020'};
+  var p={id:uid(),fieldId:fid,season:S.curSeason,name:crop||'Planting 1',crop:crop,variety:'',acres:+fAc(f),acresVerified:false,geom:fGeom(fid)||null,color:'#4a8020'};
   pushUndo('Add whole-field planting');
   S.plantings.push(p); save(); renderFieldDetail(fid); renderTree(); refreshMapZones();
   openZoneModal(p.id,fid,S.curSeason);
@@ -5028,7 +5638,7 @@ function startDrawPlanting(fid){
   var h=document.getElementById('mapActiveHint');
   if(h){h.style.display='';h.textContent='Draw the planting boundary — click to place points, double-click to finish. Esc to cancel.';}
   document.getElementById('mapInfo').textContent='Draw planting boundary — will be clipped to field border when finished.';
-  if(S.fieldGeoms[fid]) map.fitBounds(L.geoJSON(S.fieldGeoms[fid]).getBounds(),{padding:[40,40]});
+  if(fGeom(fid)) map.fitBounds(L.geoJSON(fGeom(fid)).getBounds(),{padding:[40,40]});
 }
 function triggerPlantingShp(fid){
   window._pendingPlantingFid=fid;
@@ -5101,9 +5711,9 @@ function _doMergeFromPicker(){
   _doMergePlantings(pid,fid,targetId);
 }
 function _createBalancePlanting(fid, plantedGeom, existingCount){
-  if(!S.fieldGeoms[fid]||!window.turf||!turf.difference) return;
+  if(!fGeom(fid)||!window.turf||!turf.difference) return;
   try{
-    var fg={type:'Feature',geometry:S.fieldGeoms[fid].geometry||S.fieldGeoms[fid],properties:{}};
+    var fg={type:'Feature',geometry:fGeom(fid).geometry||fGeom(fid),properties:{}};
     var pg=plantedGeom.type==='Feature'?plantedGeom:{type:'Feature',geometry:plantedGeom,properties:{}};
     var remainder=_cleanSlivers(turf.difference(fg, pg));
     if(!remainder||!remainder.geometry) return;
@@ -5119,15 +5729,15 @@ function _savePlantingFromShp(fid,geomRaw,attrs){
   var rawGeom=geomRaw.type==='Feature'?geomRaw.geometry:geomRaw;
   var geomFinal={type:'Feature',geometry:rawGeom,properties:{}};
   // Clip to field boundary
-  if(S.fieldGeoms[fid]&&window.turf&&turf.intersect){
+  if(fGeom(fid)&&window.turf&&turf.intersect){
     try{
-      var fg={type:'Feature',geometry:S.fieldGeoms[fid].geometry||S.fieldGeoms[fid],properties:{}};
+      var fg={type:'Feature',geometry:fGeom(fid).geometry||fGeom(fid),properties:{}};
       var cl=turf.intersect(fg,geomFinal);
       if(cl&&cl.geometry) geomFinal=cl;
     }catch(ex){console.warn('clip failed',ex);}
   }
   // Use turf.area for robust acreage (handles any polygon type)
-  var ac=+f.acres;
+  var ac=+fAc(f);
   if(window.turf&&turf.area){
     try{ ac=parseFloat((turf.area(geomFinal)*0.000247105).toFixed(1)); }catch(e){}
   }
@@ -5160,6 +5770,9 @@ function cancelDraw(){ cancelTool(); } // alias kept for backward compat — mai
 
 function finishEditBoundary(editGroup,editCtrl,fid){
   try{ editCtrl.save(); editCtrl.disable(); }catch(e){}
+  pushUndo('Edit field boundary');
+  var _oldGeom=_clone(fGeom(fid));
+  var _bk=_fbBegin(fid);
   editGroup.eachLayer(function(l){
     var gj=l.toGeoJSON?l.toGeoJSON():null;
     if(gj&&gj.geometry){
@@ -5168,25 +5781,29 @@ function finishEditBoundary(editGroup,editCtrl,fid){
       if(ac>0){var f=S.fields.find(function(x){return x.id===fid;}); if(f)f.acres=parseFloat(ac.toFixed(1));}
     }
   });
+  _fbEnd(_bk);
+  _afterFieldBoundaryChange(fid,_oldGeom);
   try{map.removeLayer(editGroup);}catch(e){}
-  editingFid=null; editingLayer=null;
+  editingFid=null; editingLayer=null; activeTool=null; toolFieldId=null;
   var eb=document.getElementById('btnEditField');
   if(eb){eb.textContent='✏ Edit Boundary'; eb.onclick=startEditBoundary;}
   var cc=document.getElementById('btnCancelDraw'); if(cc)cc.style.display='none';
+  var _ct=document.getElementById('btnCancelTool'); if(_ct)_ct.style.display='none';
+  var _ah=document.getElementById('mapActiveHint'); if(_ah)_ah.style.display='none';
   document.getElementById('mapInfo').textContent='Boundary updated.';
-  save(); renderMapFields(); renderPlan();
+  save(); renderMapFields(); renderPlan(); if(curFid===fid) showMapPanel(fid); renderFieldDetail(fid); updateSbCrops();
 }
 
 function _reconcilePlantingBorders(pid, fid){
-  if(!window.turf||!S.fieldGeoms[fid]) return;
-  var ff=S.fieldGeoms[fid];
+  if(!window.turf||!fGeom(fid)) return;
+  var ff=fGeom(fid);
   var fieldFeat=ff.type==='Feature'?ff:{type:'Feature',geometry:ff,properties:{}};
   // Always update field.acres from actual geometry so everything is consistent
   var fieldAcGeom=acresFromGeojson(fieldFeat);
   var f=S.fields.find(function(x){return x.id===fid;});
   // Only override if geom-computed acres differs significantly from entered (>2%) — keep user value otherwise
   // Actually just trust the geometry; user entered acres may be approximate
-  // DON'T overwrite f.acres here — that would confuse users. Just use it for internal reconcile.
+  // DON'T overwrite fAc(f) here — that would confuse users. Just use it for internal reconcile.
 
   var allPlantings=S.plantings.filter(function(x){return x.fieldId===fid&&x.season===S.curSeason;});
   var allSiblings=allPlantings.filter(function(x){return x.id!==pid;});
@@ -5209,7 +5826,7 @@ function _reconcilePlantingBorders(pid, fid){
     var soleAc=acresFromGeojson(editedFeat);
     if(soleAc>0) edited.acres=parseFloat(soleAc.toFixed(1));
     // If the edited planting is significantly smaller than the field, create/update balance planting
-    var fieldAcTotal=+(f&&f.acres)||acresFromGeojson(fieldFeat);
+    var fieldAcTotal=+(f&&fAc(f))||acresFromGeojson(fieldFeat);
     var diff=fieldAcTotal-soleAc;
     if(diff>0.5 && turf.difference){
       try{
@@ -5358,9 +5975,9 @@ function _finishPlantingEdit(editGroup,pid,fid){
   editGroup.eachLayer(function(l){
     var gj=l.toGeoJSON?l.toGeoJSON():null;
     if(!gj||!gj.geometry) return;
-    if(S.fieldGeoms[fid]&&window.turf&&turf.intersect){
+    if(fGeom(fid)&&window.turf&&turf.intersect){
       try{
-        var ff=S.fieldGeoms[fid].type==='Feature'?S.fieldGeoms[fid]:{type:'Feature',geometry:S.fieldGeoms[fid],properties:{}};
+        var ff=fGeom(fid).type==='Feature'?fGeom(fid):{type:'Feature',geometry:fGeom(fid),properties:{}};
         var clipped=turf.intersect(gj,ff); if(clipped) gj=clipped;
       }catch(e){}
     }
@@ -5398,13 +6015,16 @@ function deleteBoundary(){
   const fid=curFid; if(!fid)return;
   const f=S.fields.find(x=>x.id===fid);
   if(!confirm(`Remove the drawn boundary for "${f?f.name:fid}"? The field record stays, just the boundary is removed.`))return;
+  pushUndo('Remove boundary');
+  var _bk=_fbBegin(fid);
   delete S.fieldGeoms[fid];
+  _fbEnd(_bk);
   save(); renderMapFields(); closeMapPanel();
   document.getElementById('mapInfo').textContent='Boundary removed.';
 }
 
 function startCutHole(fid){
-  fid=fid||curFid; if(!fid||!S.fieldGeoms[fid]){alert('Open a field with a boundary first.');return;}
+  fid=fid||curFid; if(!fid||!fGeom(fid)){alert('Open a field with a boundary first.');return;}
   if(!window.turf){alert('Turf.js not loaded — cannot cut holes.');return;}
   _cuttingHole=true; toolFieldId=fid;
   if(map.hasLayer(drawControl)) try{map.removeControl(drawControl);}catch(e){}
@@ -5419,17 +6039,22 @@ function startCutHole(fid){
 function _finishCutHole(drawnGeojson){
   _cuttingHole=false;
   var fid=toolFieldId||curFid; if(!fid)return;
-  var ff=S.fieldGeoms[fid]; if(!ff)return;
+  var ff=fGeom(fid); if(!ff)return;
   var fieldFeat=ff.type==='Feature'?ff:{type:'Feature',geometry:ff,properties:{}};
   var holeFeat=drawnGeojson.type==='Feature'?drawnGeojson:{type:'Feature',geometry:drawnGeojson,properties:{}};
   try{
     var result=turf.difference(fieldFeat, holeFeat);
     if(!result){alert('Could not cut hole — make sure the drawn area is inside the field.');return;}
+    pushUndo('Cut hole');
+    var _oldGeomH=_clone(ff);
+    var _bkH=_fbBegin(fid);
     S.fieldGeoms[fid]=result;
     // Update field acres
     var newAc=acresFromGeojson(result);
     var f=S.fields.find(function(x){return x.id===fid;});
     if(f&&newAc>0) f.acres=parseFloat(newAc.toFixed(1));
+    _fbEnd(_bkH);
+    _afterFieldBoundaryChange(fid,_oldGeomH);
     document.getElementById('mapInfo').textContent='Hole cut — field boundary updated.';
     save(); renderMapFields(); if(curFid===fid) renderFieldDetail(fid); renderPlan();
   }catch(e){alert('Error cutting hole: '+e.message);}
@@ -5463,7 +6088,7 @@ function onMapDrawn(e){
 
   if(sliceMode && splittingFieldId){
     const fid=splittingFieldId;
-    const fieldGeom=_sliceSourceGeom||S.fieldGeoms[fid];
+    const fieldGeom=_sliceSourceGeom||fGeom(fid);
     if(!fieldGeom){cancelDraw();return;}
     const pieces=_computeAllPieces(fieldGeom.geometry||fieldGeom, geom.geometry||geom);
     if(!pieces||pieces.length<2){
@@ -5486,9 +6111,9 @@ function onMapDrawn(e){
     var _drawId=uid();
     // Clip drawn boundary to field boundary (snap to field)
     var _clippedGeom=geom;
-    if(S.fieldGeoms[fid] && window.turf && turf.intersect){
+    if(fGeom(fid) && window.turf && turf.intersect){
       try{
-        var _fg=S.fieldGeoms[fid];
+        var _fg=fGeom(fid);
         var _fPoly=_fg.type==='Feature'?_fg:{type:'Feature',geometry:_fg,properties:{}};
         var _dPoly=geom.type==='Feature'?geom:{type:'Feature',geometry:geom,properties:{}};
         var _clipped=turf.intersect(_fPoly,_dPoly);
@@ -5523,9 +6148,9 @@ function onMapDrawn(e){
     var fid2=_pendingTreatmentAreaFid||curFid; _pendingTreatmentAreaFid=null;
     // Clip to field boundary
     var taGeom=geom;
-    if(fid2&&S.fieldGeoms[fid2]&&window.turf&&turf.intersect){
+    if(fid2&&fGeom(fid2)&&window.turf&&turf.intersect){
       try{
-        var ff={type:'Feature',geometry:S.fieldGeoms[fid2].geometry||S.fieldGeoms[fid2],properties:{}};
+        var ff={type:'Feature',geometry:fGeom(fid2).geometry||fGeom(fid2),properties:{}};
         taGeom=turf.intersect(geom,ff)||geom;
       }catch(e){}
     }
@@ -5534,7 +6159,7 @@ function onMapDrawn(e){
     // Prompt for name
     var taName=prompt('Name this treatment area (e.g. "South 40", "Wet Corner"):','Treatment Area');
     if(!taName){cancelTool();return;}
-    var ta={id:uid(),fieldId:fid2,name:taName,acres:taAc,geom:taGeom,color:'#9060CC',notes:''};
+    var ta={id:uid(),fieldId:fid2,season:S.curSeason,name:taName,acres:taAc,geom:taGeom,color:'#9060CC',notes:''};
     S.treatmentAreas=(S.treatmentAreas||[]);
     S.treatmentAreas.push(ta);
     cancelTool(true);
@@ -5933,6 +6558,7 @@ function _normalizeAllGeoms(){
   try{
     if(S.plantings) S.plantings.forEach(function(p){if(p&&p.geom){var n=_normGeom(p.geom);p.geom=n;}});
     if(S.fieldGeoms){Object.keys(S.fieldGeoms).forEach(function(k){var n=_normGeom(S.fieldGeoms[k]);if(n)S.fieldGeoms[k]=n;else delete S.fieldGeoms[k];});}
+    if(S.seasonBounds){Object.keys(S.seasonBounds).forEach(function(sk){var sb=S.seasonBounds[sk]||{};Object.keys(sb).forEach(function(k){if(sb[k]&&sb[k].geom){var n=_normGeom(sb[k].geom);sb[k].geom=n||null;}});});}
     if(S.treatmentAreas) S.treatmentAreas.forEach(function(a){if(a&&a.geom){var n=_normGeom(a.geom);a.geom=n;}});
   }catch(e){console.warn('_normalizeAllGeoms failed',e);}
 }
@@ -6323,7 +6949,7 @@ function saveSliceGeoms(){
   var ac1=parseFloat(acresFromCoords(c1).toFixed(1)), ac2=parseFloat(acresFromCoords(c2).toFixed(1));
   pushUndo('Slice field');
   if(_sliceEditGeoms.sourcePlantingId){S.plantings=S.plantings.filter(function(x){return x.id!==_sliceEditGeoms.sourcePlantingId;});}
-  var _fieldGeomForClip=S.fieldGeoms[fid];
+  var _fieldGeomForClip=fGeom(fid);
   function _clipTF(feat){if(!_fieldGeomForClip||!window.turf||!turf.intersect)return feat;try{var ff=_fieldGeomForClip.type==='Feature'?_fieldGeomForClip:{type:'Feature',geometry:_fieldGeomForClip,properties:{}};return turf.intersect(feat,ff)||feat;}catch(e){return feat;}}
   function _buildHalf(coords,extras){var mf={type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{}};mf=_clipTF(mf);if(!extras||!extras.length)return mf;var r=[];var mg=mf.geometry||mf;if(mg.type==='Polygon')r.push(mg.coordinates);else if(mg.type==='MultiPolygon')r=r.concat(mg.coordinates);extras.forEach(function(p){var ef=_clipTF({type:'Feature',geometry:p,properties:{}});var eg=ef.geometry||ef;if(eg.type==='Polygon')r.push(eg.coordinates);else if(eg.type==='MultiPolygon')r=r.concat(eg.coordinates);});return r.length===1?{type:'Feature',geometry:{type:'Polygon',coordinates:r[0]},properties:{}}:{type:'Feature',geometry:{type:'MultiPolygon',coordinates:r},properties:{}};}
   [{crop:crop1,variety:var1,ac:ac1,coords:c1,extras:extras1},{crop:crop2,variety:var2,ac:ac2,coords:c2,extras:extras2}].forEach(function(z,idx){
@@ -6356,7 +6982,7 @@ function _saveMultiPieceSlice(){
     if(!groups[key])groups[key]={crop:p.crop,variety:p.variety,color:p.color,pieces:[]};
     groups[key].pieces.push(p);
   });
-  var _fgc=S.fieldGeoms[fid];
+  var _fgc=fGeom(fid);
   function _clip2(feat){if(!_fgc||!window.turf||!turf.intersect)return feat;try{var ff=_fgc.type==='Feature'?_fgc:{type:'Feature',geometry:_fgc,properties:{}};return turf.intersect(feat,ff)||feat;}catch(e){return feat;}}
   Object.keys(groups).forEach(function(key){
     var g=groups[key]; var rings=[]; var totalAc=0;
@@ -6499,7 +7125,7 @@ async function _processPdfVrtFile(idx){
       +'One entry per product per zone. No markdown, no preamble.';
   }
 
-  var userMsg=(f?('Field: '+f.name+(f.acres?' ('+f.acres+'ac)':'')+'. '):'')+'\nExtract the '+(mode==='zone'?'zone map structure':'VRT rates')+' from this document.';
+  var userMsg=(f?('Field: '+f.name+(fAc(f)?' ('+fAc(f)+'ac)':'')+'. '):'')+'\nExtract the '+(mode==='zone'?'zone map structure':'VRT rates')+' from this document.';
 
   document.getElementById('pdfvrt-step1').style.display='none';
   document.getElementById('pdfvrt-step2').style.display='';
@@ -6691,7 +7317,7 @@ function sliceBalanceTotal(){
   var fid=splittingFieldId||_sliceFieldFid;
   var f=fid?S.fields.find(function(x){return x.id===fid;}):null;
   if(!f)return;
-  var total=+f.acres||0;
+  var total=+fAc(f)||0;
   var a1=+document.getElementById('sliceAc1').value||0;
   var rem=Math.max(0,total-a1);
   document.getElementById('sliceAc2').value=rem.toFixed(1);
@@ -6792,7 +7418,7 @@ function saveDrawnField(){
   if(map.hasLayer(drawControl)) try{map.removeControl(drawControl);}catch(e){}
   pendingDrawnGeom=null;
   renderTree(); renderPlan(); updateSbCrops(); renderMapFields();
-  const layer=L.geoJSON(S.fieldGeoms[fid]);
+  const layer=L.geoJSON(fGeom(fid));
   map.fitBounds(layer.getBounds(),{padding:[40,40]});
   document.getElementById('mapInfo').textContent=`Field "${name}" added`;
 }
@@ -6875,7 +7501,7 @@ function previewShpImport(){
   });
 
   // Detect spatial overlaps using Turf
-  var allExistingGeoms=S.fields.map(function(ef){return {field:ef,geom:S.fieldGeoms[ef.id]};}).filter(function(x){return x.geom;});
+  var allExistingGeoms=S.fields.map(function(ef){return {field:ef,geom:fGeom(ef.id)};}).filter(function(x){return x.geom;});
   rows.forEach(function(r){
     r.overlaps=[];
     if(window.turf&&r.feat&&r.feat.geometry){
@@ -6975,8 +7601,11 @@ function doShpImportSelected(){
       // Just update the geometry — preserve ALL field data
       var geomCopy=JSON.parse(JSON.stringify(feat));
       geomCopy.properties={fieldId:r.existing.id,name:r.existing.name};
+      var _bkI=_fbBegin(r.existing.id);
       S.fieldGeoms[r.existing.id]=geomCopy;
       if(acres) r.existing.acres=acres;
+      else { var _gaI=calcAcresFromGeom(feat.geometry||feat); if(_gaI>0) r.existing.acres=parseFloat(_gaI.toFixed(1)); }
+      _fbEnd(_bkI);
       added.borderOnly++;
       return;
     }
@@ -6986,8 +7615,11 @@ function doShpImportSelected(){
       var targetFld=r.overlaps[0].field;
       var geomCopy2=JSON.parse(JSON.stringify(feat));
       geomCopy2.properties={fieldId:targetFld.id,name:targetFld.name};
+      var _bkI2=_fbBegin(targetFld.id);
       S.fieldGeoms[targetFld.id]=geomCopy2;
       if(acres) targetFld.acres=acres;
+      else { var _gaI2=calcAcresFromGeom(feat.geometry||feat); if(_gaI2>0) targetFld.acres=parseFloat(_gaI2.toFixed(1)); }
+      _fbEnd(_bkI2);
       added.borderOnly++;
       return;
     }
@@ -6999,11 +7631,14 @@ function doShpImportSelected(){
     if(!fm){fm={id:uid(),growerId:g.id,name:fname,location:''};S.farms.push(fm);added.farms++;}
     // For keep-both, always create new; for create, check exact name match
     let fld=action==='keep-both'?null:S.fields.find(function(x){return x.farmId===fm.id&&x.name===fldname;});
+    var _bkI3=null;
     if(!fld){fld={id:uid(),farmId:fm.id,growerId:g.id,name:fldname,alias,acres,notes:''};S.fields.push(fld);added.fields++;}
-    else{if(acres)fld.acres=acres;if(alias)fld.alias=alias;added.updated++;}
+    else{_bkI3=_fbBegin(fld.id);if(acres)fld.acres=acres;if(alias)fld.alias=alias;added.updated++;}
     const geomCopy3=JSON.parse(JSON.stringify(feat));
     geomCopy3.properties={fieldId:fld.id,name:fldname};
     S.fieldGeoms[fld.id]=geomCopy3;
+    if(!acres){ var _gaI3=calcAcresFromGeom(feat.geometry||feat); if(_gaI3>0) fld.acres=parseFloat(_gaI3.toFixed(1)); }
+    if(_bkI3) _fbEnd(_bkI3);
     if(crop){ensureFS(fld.id).crop=crop;}
   });
 
@@ -7055,8 +7690,10 @@ function doShpImport(){
     if(!fld){
       fld={id:uid(),farmId:fm.id,growerId:g.id,name:fldname,alias,acres,notes:''};
       S.fields.push(fld);added.fields++;
+      var _bkI4=null;
     } else {
       // Update existing — refresh acres, alias, geometry
+      var _bkI4=_fbBegin(fld.id);
       if(acres) fld.acres=acres;
       if(alias) fld.alias=alias;
       added.updated++;
@@ -7065,6 +7702,8 @@ function doShpImport(){
     const geomCopy=JSON.parse(JSON.stringify(feat));
     geomCopy.properties={fieldId:fld.id,name:fldname};
     S.fieldGeoms[fld.id]=geomCopy;
+    if(!acres){ var _gaI4=calcAcresFromGeom(feat.geometry||feat); if(_gaI4>0) fld.acres=parseFloat(_gaI4.toFixed(1)); }
+    if(_bkI4) _fbEnd(_bkI4);
     if(crop){ensureFS(fld.id).crop=crop;}
   });
   S.importLog=(S.importLog||[]);
@@ -7110,14 +7749,14 @@ function renderRx(){
       <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--fog);border-bottom:1px solid var(--rule2)">
         <div>
           <div style="font-family:'Bitter',serif;font-weight:700;font-size:15px">${esc(f?f.name:'')}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(g?g.name:'')} &rsaquo; ${esc(fm?fm.name:'')} &bull; ${f?f.acres:0}ac${crop?' &bull; '+crop:''}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(g?g.name:'')} &rsaquo; ${esc(fm?fm.name:'')} &bull; ${f?fAc(f):0}ac${crop?' &bull; '+crop:''}</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:5px">
           <button class="btn btn-og btn-sm" onclick="selField('${fid}')">Detail</button>
         </div>
       </div>
       ${fRxs.map(rx=>{
-        const zones=rx.zones||[{zoneId:'',zoneName:'Whole Field',acres:f?+f.acres||0:0,rate:+(rx.rate||0)}];
+        const zones=rx.zones||[{zoneId:'',zoneName:'Whole Field',acres:f?+fAc(f)||0:0,rate:+(rx.rate||0)}];
         const grandTotal=zones.reduce((s,z)=>s+(+(z.rate||0))*(+(z.acres||0)),0);
         return `<div style="padding:12px 14px;border-bottom:1px solid var(--rule2)">
           <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
@@ -7161,7 +7800,7 @@ function buildRxZoneGrid(){
   const existing=rxId?S.prescriptions.find(x=>x.id===rxId):null;
   const exZones=existing?existing.zones||[]:[];
 
-  const rows=zones.length ? zones : [{id:'_whole', name:'Whole Field', color:'#7AB858', crop:'', acres:f?f.acres:0}];
+  const rows=zones.length ? zones : [{id:'_whole', name:'Whole Field', color:'#7AB858', crop:'', acres:f?fAc(f):0}];
   const isWhole=!zones.length;
 
   document.getElementById('rxZoneGrid').innerHTML=
@@ -7226,7 +7865,7 @@ function openRxForField(fid){
   openM('rx');
 }
 function popRxFmSel(){ const gid=document.getElementById('rx-g').value; document.getElementById('rx-fm').innerHTML=S.farms.filter(f=>f.growerId===gid).map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join(''); popRxFldSel(); }
-function popRxFldSel(){ const fmid=document.getElementById('rx-fm').value; const flds=S.fields.filter(f=>f.farmId===fmid); document.getElementById('rx-fld').innerHTML=flds.map(f=>`<option value="${f.id}">${esc(f.name)} (${f.acres}ac)</option>`).join(''); if(flds.length){ document.getElementById('rx-fld').value=flds[0].id; buildRxZoneGrid(); } }
+function popRxFldSel(){ const fmid=document.getElementById('rx-fm').value; const flds=S.fields.filter(f=>f.farmId===fmid); document.getElementById('rx-fld').innerHTML=flds.map(f=>`<option value="${f.id}">${esc(f.name)} (${fAc(f)}ac)</option>`).join(''); if(flds.length){ document.getElementById('rx-fld').value=flds[0].id; buildRxZoneGrid(); } }
 
 function saveRx(){
   const product=document.getElementById('rx-prod').value.trim(); if(!product){alert('Enter a product name');return;}
@@ -7708,7 +8347,7 @@ function _apkBuildList(pid, q, cropQ, hideApplied){
         +'<input type="checkbox" class="apk-fcb" data-fid="'+f.id+'" '+(isChecked?'checked ':'')+(isApplied?'data-applied="1" ':'')+' style="width:13px;height:13px" onchange="apkUpdateSummary()">'
         +'<span style="flex:1;font-size:12px'+(isApplied?';color:var(--muted)':'')+'">'+esc(f.name)+(f.alias?' <em style="font-size:10px">'+esc(f.alias)+'</em>':'')+'</span>'
         +(fldCrops.length?fldCrops.map(function(c){return '<span class="cb '+cropClass(c)+'" style="font-size:9px">'+c+'</span>';}).join(' '):'')
-        +'<span style="font-size:10px;color:var(--muted)">'+f.acres+' ac</span>'
+        +'<span style="font-size:10px;color:var(--muted)">'+fAc(f)+' ac</span>'
         +(isApplied?'<span style="font-size:9px;color:var(--leaf)">✓</span>':'')
         +'</label>';
       grpCount++;
@@ -8107,7 +8746,7 @@ function buildAaTree(){
   tree.innerHTML=S.growers.map(g=>{
     const gFarms=S.farms.filter(f=>f.growerId===g.id);
     const gFlds=S.fields.filter(f=>f.growerId===g.id);
-    const gAc=gFlds.reduce((s,f)=>s+(+f.acres||0),0);
+    const gAc=gFlds.reduce((s,f)=>s+(+fAc(f)||0),0);
     return `<div style="border-bottom:1px solid var(--rule2)">
       <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--fog);cursor:pointer" onclick="aaClickGrower('${g.id}',this)">
         <input type="checkbox" id="aag_${g.id}" onclick="event.stopPropagation();aaCheckGrower('${g.id}',this.checked)">
@@ -8116,7 +8755,7 @@ function buildAaTree(){
       </div>
       ${gFarms.map(fm=>{
         const fmFlds=S.fields.filter(f=>f.farmId===fm.id);
-        const fmAc=fmFlds.reduce((s,f)=>s+(+f.acres||0),0);
+        const fmAc=fmFlds.reduce((s,f)=>s+(+fAc(f)||0),0);
         return `<div>
           <div style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 28px;border-top:1px solid var(--rule2);cursor:pointer" onclick="aaClickFarm('${fm.id}',this)">
             <input type="checkbox" id="aafm_${fm.id}" onclick="event.stopPropagation();aaCheckFarm('${fm.id}',this.checked)">
@@ -8128,7 +8767,7 @@ function buildAaTree(){
               <input type="checkbox" id="aaf_${f.id}" data-fid="${f.id}" class="aafcb" onchange="updateApplyPreview()">
               <label for="aaf_${f.id}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;flex:1;cursor:pointer">${esc(f.name)}</label>
               ${crop?`<span class="cb ${cropClass(crop)}" style="font-size:9px">${crop}</span>`:''}
-              <span style="font-size:10px;color:var(--muted)">${f.acres}ac</span>
+              <span style="font-size:10px;color:var(--muted)">${fAc(f)}ac</span>
             </div>`;}).join('')}
         </div>`;
       }).join('')}
@@ -8141,7 +8780,7 @@ function aaClickFarm(fmid,row){ const cb=document.getElementById('aafm_'+fmid); 
 function aaCheckFarm(fmid,checked){ S.fields.filter(f=>f.farmId===fmid).forEach(f=>{ const cb=document.getElementById('aaf_'+f.id); if(cb)cb.checked=checked; }); updateApplyPreview(); }
 
 function getApplyFields(){ const scope=document.getElementById('aa-scope').value; const cropV=document.getElementById('aa-crop').value; if(scope==='all') return S.fields; if(scope==='crop') return S.fields.filter(f=>{var fc=getFieldCrop(f.id,S.curSeason);if(fc===cropV)return true;return getPlantings(f.id,S.curSeason).some(function(p){return p.crop===cropV;});}); if(scope==='selected') return S.fields.filter(f=>selectedRows.has(f.id)); if(scope==='pick') return [...document.querySelectorAll('.aafcb:checked')].map(cb=>S.fields.find(f=>f.id===cb.dataset.fid)).filter(Boolean); return S.fields; }
-function updateApplyPreview(){ const pid=document.getElementById('aa-prog').value; const flds=getApplyFields(); const pr=S.programs.find(p=>p.id===pid); const el=document.getElementById('aa-preview'); const scope=document.getElementById('aa-scope').value; const cropV=document.getElementById('aa-crop').value; if(!pr||!flds.length){el.innerHTML='<div class="notice" style="margin-top:9px">No matching fields.</div>';return;} const ac=flds.reduce((s,f)=>s+(+f.acres||0),0); var scopeNote=''; if(scope==='crop'){ var plantingAc=0; flds.forEach(function(f){ var ps=getPlantings(f.id,S.curSeason).filter(function(p){return p.crop===cropV;}); if(ps.length) plantingAc+=ps.reduce(function(s,p){return s+(+p.acres||0);},0); else plantingAc+=(+f.acres||0); }); scopeNote='<br><span style="font-size:11px;color:var(--wheat)">🔶 Will target <strong>'+esc(cropV)+' plantings</strong> specifically ('+plantingAc.toFixed(1)+' ac) — not whole field</span>'; } el.innerHTML=`<div class="notice green" style="margin-top:9px">Will apply <strong>${esc(pr.name)}</strong> to <strong>${flds.length} field${flds.length!==1?'s':''}</strong> (${ac.toFixed(1)}ac).${scopeNote}<br><span style="font-size:11.5px">${flds.slice(0,6).map(f=>f.name).join(', ')}${flds.length>6?'…':''}</span></div>`; }
+function updateApplyPreview(){ const pid=document.getElementById('aa-prog').value; const flds=getApplyFields(); const pr=S.programs.find(p=>p.id===pid); const el=document.getElementById('aa-preview'); const scope=document.getElementById('aa-scope').value; const cropV=document.getElementById('aa-crop').value; if(!pr||!flds.length){el.innerHTML='<div class="notice" style="margin-top:9px">No matching fields.</div>';return;} const ac=flds.reduce((s,f)=>s+(+fAc(f)||0),0); var scopeNote=''; if(scope==='crop'){ var plantingAc=0; flds.forEach(function(f){ var ps=getPlantings(f.id,S.curSeason).filter(function(p){return p.crop===cropV;}); if(ps.length) plantingAc+=ps.reduce(function(s,p){return s+(+p.acres||0);},0); else plantingAc+=(+fAc(f)||0); }); scopeNote='<br><span style="font-size:11px;color:var(--wheat)">🔶 Will target <strong>'+esc(cropV)+' plantings</strong> specifically ('+plantingAc.toFixed(1)+' ac) — not whole field</span>'; } el.innerHTML=`<div class="notice green" style="margin-top:9px">Will apply <strong>${esc(pr.name)}</strong> to <strong>${flds.length} field${flds.length!==1?'s':''}</strong> (${ac.toFixed(1)}ac).${scopeNote}<br><span style="font-size:11.5px">${flds.slice(0,6).map(f=>f.name).join(', ')}${flds.length>6?'…':''}</span></div>`; }
 function confirmApplyAll(){
   const pid=document.getElementById('aa-prog').value; if(!pid){alert('Select a program');return;}
   const flds=getApplyFields();
@@ -8221,7 +8860,7 @@ function buildRaTree(){
   tree.innerHTML=sortedGrowers.map(g=>{
     const gFarms=S.farms.filter(f=>f.growerId===g.id).sort((a,b)=>a.name.localeCompare(b.name));
     const gFlds=S.fields.filter(f=>f.growerId===g.id);
-    const gAc=gFlds.reduce((s,f)=>s+(+f.acres||0),0);
+    const gAc=gFlds.reduce((s,f)=>s+(+fAc(f)||0),0);
     return '<div style="border-bottom:1px solid var(--rule2)"><div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--fog)">'
       +'<input type="checkbox" id="rag_'+g.id+'" onclick="raCheckGrower(\''+g.id+'\',this.checked)">'
       +'<label for="rag_'+g.id+'" style="font-weight:700;flex:1;cursor:pointer">'+esc(g.name)+'</label>'
@@ -8324,11 +8963,12 @@ function openAssign(fid, preselPlantingId){
     : '<div style="font-size:11px;color:var(--muted)">No plantings defined for '+S.curSeason+'</div>';
 
   // Build treatment area selector
-  var areas=(S.treatmentAreas||[]).filter(function(a){return a.fieldId===fid;});
+  var areas=(S.treatmentAreas||[]).filter(function(a){return a.fieldId===fid&&(!a.season||a.season===S.curSeason);});
   var aSel=document.getElementById('asgn-area-sel');
   aSel.innerHTML='<option value="">-- Select area --</option>'
     +areas.map(function(a){return '<option value="'+a.id+'">'+esc(a.name)+(a.acres?' ('+a.acres+' ac)':'')+'</option>';}).join('');
 
+  var _sep=document.getElementById('asgn-separate'); if(_sep) _sep.checked=false;
   // Default scope
   asgnSetScope(preselPlantingId?'planting':'field');
   asgnUpdateAcresPreview(fid);
@@ -8448,7 +9088,7 @@ function asgnUpdateAcresPreview(fid){
   var el=document.getElementById('asgn-acres-preview'); if(!el)return;
   var msg='';
   if(scope==='field'){
-    msg='Applies to entire field: '+f.acres+' ac';
+    msg='Applies to entire field: '+fAc(f).toFixed(1)+' ac';
   } else if(scope==='planting'){
     var checked=Array.from(document.querySelectorAll('input[name="asgn-p"]:checked'));
     if(!checked.length){ msg='Select at least one planting above'; }
@@ -8494,13 +9134,19 @@ function assignProg(){
     treatmentAreaId=asel.value;
   }
 
+  pushUndo('Add program');
+  var _sepEl=document.getElementById('asgn-separate');
+  var _groups=(plantingIds&&plantingIds.length>1&&_sepEl&&_sepEl.checked)?plantingIds.map(function(x){return [x];}):[plantingIds];
+  _groups.forEach(function(pids){
   S.fieldProgs.push({id:uid(),fieldId:fid,programId:pid,season:S.curSeason,
     notes:document.getElementById('asgn-notes').value,
-    plantingIds:plantingIds,        // array of planting IDs, or null (whole field)
+    plantingIds:pids,        // array of planting IDs, or null (whole field)
     treatmentAreaId:treatmentAreaId, // treatment area ID, or null
     cropZoneId:null,                 // legacy field — no longer used
     vrtRates:{}});
+  });
   save(); closeM('assign'); renderFieldDetail(fid); renderPlan(); renderPrograms();
+  if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
 }
 
 // ════════════════════════════════════════
@@ -8836,7 +9482,7 @@ function editField(fid){
   setTimeout(()=>{document.getElementById('fi-fm').value=f.farmId;},20);
   document.getElementById('fi-id').value=fid;
   document.getElementById('fi-n').value=f.name;
-  document.getElementById('fi-ac').value=f.acres;
+  document.getElementById('fi-ac').value=fAc(f);
   // crop/variety are now managed via Plantings — keep fieldSeason in sync but don't show as editable
   document.getElementById('fi-till').value=fs.tillage||'';
   document.getElementById('fi-yld').value=fs.targetYield||'';
@@ -8858,8 +9504,17 @@ function saveField(){
   // Collect tags from chip UI
   const tags=[...document.querySelectorAll('#fi-tag-wrap .tag-chip')].map(c=>c.dataset.tag).filter(Boolean);
   const _vEl=document.getElementById('fi-vrt'); const f={id,farmId:document.getElementById('fi-fm').value,growerId:document.getElementById('fi-g').value,name,alias:document.getElementById('fi-alias').value.trim(),acres:+document.getElementById('fi-ac').value||0,notes:document.getElementById('fi-notes').value,tags,vrt:_vEl?_vEl.checked:false,vrtZones:(_vEl&&_vEl.checked)?+document.getElementById('fi-vrt-n').value||5:0};
-  const idx=S.fields.findIndex(x=>x.id===id); if(idx>=0)S.fields[idx]=f; else S.fields.push(f);
-  const fs=ensureFS(id); fs.crop=document.getElementById('fi-crop').value; fs.variety=document.getElementById('fi-var').value; fs.tillage=document.getElementById('fi-till').value; fs.targetYield=document.getElementById('fi-yld').value;
+  const idx=S.fields.findIndex(x=>x.id===id);
+  if(idx>=0){
+    // v41: merge (keeps vrtZoneDefs, boundaryLocked, etc.) and route acres through the season-aware setter
+    var _ex=S.fields[idx]; var _newAc=f.acres; var _oldAc=fAc(_ex);
+    f.acres=_ex.acres; Object.assign(_ex,f);
+    if(Math.abs(_newAc-_oldAc)>0.001){
+      if(isSeasonLocked(S.curSeason)) fdToast('🔒 '+S.curSeason+' is locked — acres were not changed.','error');
+      else setFieldAcres(id,_newAc);
+    }
+  } else S.fields.push(f);
+  if(!isSeasonLocked(S.curSeason)){ const fs=ensureFS(id); var _fc=document.getElementById('fi-crop'), _fv=document.getElementById('fi-var'); if(_fc&&_fc.value) fs.crop=_fc.value; if(_fv&&_fv.value) fs.variety=_fv.value; fs.tillage=document.getElementById('fi-till').value; fs.targetYield=document.getElementById('fi-yld').value; }
   // Update global tag list
   tags.forEach(t=>{ if(!S.tags.find(x=>x.name===t)) S.tags.push({id:uid(),name:t,color:randomTagColor()}); });
   save(); closeM('field'); renderTree(); renderPlan(); updateSbCrops(); if(curFid===id) renderFieldDetail(id); refreshMapColors(); updateTagFilter();
@@ -8873,7 +9528,7 @@ function deleteField(fid){
   const plantings=(S.plantings||[]).filter(p=>p.fieldId===fid).length;
   const progs=S.fieldProgs.filter(fp=>fp.fieldId===fid).length;
   const rxs=(S.prescriptions||[]).filter(r=>r.fieldId===fid).length;
-  let msg=`Delete "${f.name}" (${f.acres}ac)?`;
+  let msg=`Delete "${f.name}" (${fAc(f)}ac)?`;
   if(zones||plantings||progs||rxs) msg+=`\n\nThis will also delete: ${[plantings?plantings+' planting(s)':'',zones?zones+' zone(s)':'',progs?progs+' program assignment(s)':'',rxs?rxs+' prescription(s)':'']. filter(Boolean).join(', ')}.`;
   if(!confirm(msg))return;
   pushUndo("Delete field: "+f.name);
@@ -9218,7 +9873,7 @@ function _buildMergeFieldList(containerId, hiddenId, labelId, selectedFid){
           +' onclick="selectMergeField(this)"'
           +' style="padding:5px 8px 5px 24px;cursor:pointer;font-size:12px;display:flex;justify-content:space-between;align-items:center'+(isSelected?';background:rgba(220,162,40,.15);font-weight:600;color:var(--gold)':'')+'">'
           +'<span>'+esc(f.name)+'</span>'
-          +'<span style="font-size:10px;color:var(--muted)">'+f.acres+'ac'+(crop?' · '+crop:'')+' </span>'
+          +'<span style="font-size:10px;color:var(--muted)">'+fAc(f)+'ac'+(crop?' · '+crop:'')+' </span>'
           +'</div>';
       });
     });
@@ -9231,7 +9886,7 @@ function _buildMergeFieldList(containerId, hiddenId, labelId, selectedFid){
         +' onclick="selectMergeField(this)"'
         +' style="padding:5px 8px 5px 24px;cursor:pointer;font-size:12px;display:flex;justify-content:space-between;align-items:center'+(isSelected?';background:rgba(220,162,40,.15);font-weight:600;color:var(--gold)':'')+'">'
         +'<span>'+esc(f.name)+'</span>'
-        +'<span style="font-size:10px;color:var(--muted)">'+f.acres+'ac'+(crop?' · '+crop:'')+' </span>'
+        +'<span style="font-size:10px;color:var(--muted)">'+fAc(f)+'ac'+(crop?' · '+crop:'')+' </span>'
         +'</div>';
     });
   });
@@ -9299,7 +9954,7 @@ function refreshMergePreview(){
   if(nameA) nameA.textContent=fa.name;
   if(nameB) nameB.textContent=fb.name;
 
-  var hasBndA=!!S.fieldGeoms[aid], hasBndB=!!S.fieldGeoms[bid];
+  var hasBndA=!!fGeom(aid), hasBndB=!!fGeom(bid);
   var bndA=document.querySelector('#merge-keep-boundary option[value="a"]');
   var bndB=document.querySelector('#merge-keep-boundary option[value="b"]');
   if(bndA) bndA.textContent=fa.name+' boundary'+(hasBndA?'':' (none)');
@@ -9355,8 +10010,8 @@ function confirmMerge(){
   if(keepAcres==='sum') fa.acres=((+fa.acres||0)+(+fb.acres||0)).toFixed(1);
   else if(keepAcres==='b') fa.acres=fb.acres;
 
-  if(keepBnd==='b'&&S.fieldGeoms[bid]){
-    var gc=JSON.parse(JSON.stringify(S.fieldGeoms[bid]));
+  if(keepBnd==='b'&&fGeom(bid)){
+    var gc=JSON.parse(JSON.stringify(fGeom(bid)));
     gc.properties={fieldId:fa.id,name:fa.name};
     S.fieldGeoms[fa.id]=gc;
   } else if(keepBnd==='none'){
@@ -9451,7 +10106,7 @@ function deleteFarm(fmid){
 // ════════════════════════════════════════
 //  GROWER SEARCH
 // ════════════════════════════════════════
-function gsSearch(q){ const dd=document.getElementById('gsDd'); const ql=q.toLowerCase().trim(); if(!ql){dd.classList.remove('open');return;} const res=[]; S.growers.forEach(g=>{if(g.name.toLowerCase().includes(ql)){const ac=totalAc(S.fields.filter(f=>f.growerId===g.id));res.push({t:'grower',label:g.name,sub:`${S.farms.filter(f=>f.growerId===g.id).length} farms · ${Math.round(ac)}ac`,id:g.id});}}); S.farms.forEach(fm=>{if(fm.name.toLowerCase().includes(ql)){const g=S.growers.find(x=>x.id===fm.growerId);res.push({t:'farm',label:fm.name,sub:`Farm · ${esc(g?g.name:'')}`,id:fm.id});}}); S.fields.forEach(f=>{if(f.name.toLowerCase().includes(ql)){const g=S.growers.find(x=>x.id===f.growerId);const fs=getFS(f.id);res.push({t:'field',label:f.name,sub:`${esc(g?g.name:'')} · ${f.acres}ac${fs&&fs.crop?' · '+fs.crop:''}`,id:f.id});}}); if(!res.length){dd.innerHTML=`<div class="gsi"><div class="gsi-name" style="color:var(--muted)">No results</div></div>`;dd.classList.add('open');return;} dd.innerHTML=res.slice(0,10).map(r=>`<div class="gsi" onclick="${r.t==='field'?`selField('${r.id}');gsHide()`:r.t==='grower'?`setTab('plan');document.getElementById('filterG').value='${r.id}';renderPlan();gsHide()`:r.t==='farm'?`document.getElementById('filterFm').value='${r.id}';renderPlan();gsHide()`:''}">${r.t==='grower'?'🧑‍🌾':r.t==='farm'?'🏡':'🌾'} <div class="gsi-name">${esc(r.label)}</div><div class="gsi-meta">${esc(r.sub)}</div></div>`).join(''); dd.classList.add('open'); }
+function gsSearch(q){ const dd=document.getElementById('gsDd'); const ql=q.toLowerCase().trim(); if(!ql){dd.classList.remove('open');return;} const res=[]; S.growers.forEach(g=>{if(g.name.toLowerCase().includes(ql)){const ac=totalAc(S.fields.filter(f=>f.growerId===g.id));res.push({t:'grower',label:g.name,sub:`${S.farms.filter(f=>f.growerId===g.id).length} farms · ${Math.round(ac)}ac`,id:g.id});}}); S.farms.forEach(fm=>{if(fm.name.toLowerCase().includes(ql)){const g=S.growers.find(x=>x.id===fm.growerId);res.push({t:'farm',label:fm.name,sub:`Farm · ${esc(g?g.name:'')}`,id:fm.id});}}); S.fields.forEach(f=>{if(f.name.toLowerCase().includes(ql)){const g=S.growers.find(x=>x.id===f.growerId);const fs=getFS(f.id);res.push({t:'field',label:f.name,sub:`${esc(g?g.name:'')} · ${fAc(f)}ac${fs&&fs.crop?' · '+fs.crop:''}`,id:f.id});}}); if(!res.length){dd.innerHTML=`<div class="gsi"><div class="gsi-name" style="color:var(--muted)">No results</div></div>`;dd.classList.add('open');return;} dd.innerHTML=res.slice(0,10).map(r=>`<div class="gsi" onclick="${r.t==='field'?`selField('${r.id}');gsHide()`:r.t==='grower'?`setTab('plan');document.getElementById('filterG').value='${r.id}';renderPlan();gsHide()`:r.t==='farm'?`document.getElementById('filterFm').value='${r.id}';renderPlan();gsHide()`:''}">${r.t==='grower'?'🧑‍🌾':r.t==='farm'?'🏡':'🌾'} <div class="gsi-name">${esc(r.label)}</div><div class="gsi-meta">${esc(r.sub)}</div></div>`).join(''); dd.classList.add('open'); }
 function gsShow(){ gsSearch(document.getElementById('gsInp').value); }
 function gsHide(){ document.getElementById('gsDd').classList.remove('open'); document.getElementById('gsInp').value=''; }
 
@@ -9574,7 +10229,7 @@ function handleProductCSV(e){
 // ════════════════════════════════════════
 //  EXPORT
 // ════════════════════════════════════════
-function exportPlan(){ const season=S.curSeason; const rows=[['Grower','Farm','Field','Acres','Crop','Variety','Tillage','Target Yield','Plantings','Programs','Notes']]; S.growers.forEach(g=>{S.farms.filter(f=>f.growerId===g.id).forEach(fm=>{S.fields.filter(f=>f.farmId===fm.id).forEach(f=>{const fs=getFS(f.id,season)||{}; const plantings=(S.plantings||[]).filter(p=>p.fieldId===f.id&&p.season===season).map(p=>`${p.name||p.crop||'Unassigned'}:${p.crop||''}:${p.acres||0}ac`).join('; '); const progs=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).map(fp=>{const pr=S.programs.find(p=>p.id===fp.programId);return pr?pr.name:'';}).filter(Boolean).join('; ');rows.push([g.name,fm.name,f.name,f.acres,fs.crop||'',fs.variety||'',fs.tillage||'',fs.targetYield||'',plantings,progs,f.notes||'']);})})}); const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,`Plan ${season}`); XLSX.writeFile(wb,`FieldDesk_${season}.xlsx`); }
+function exportPlan(){ const season=S.curSeason; const rows=[['Grower','Farm','Field','Acres','Crop','Variety','Tillage','Target Yield','Plantings','Programs','Notes']]; S.growers.forEach(g=>{S.farms.filter(f=>f.growerId===g.id).forEach(fm=>{S.fields.filter(f=>f.farmId===fm.id).forEach(f=>{const fs=getFS(f.id,season)||{}; const plantings=(S.plantings||[]).filter(p=>p.fieldId===f.id&&p.season===season).map(p=>`${p.name||p.crop||'Unassigned'}:${p.crop||''}:${p.acres||0}ac`).join('; '); const progs=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).map(fp=>{const pr=S.programs.find(p=>p.id===fp.programId);return pr?pr.name:'';}).filter(Boolean).join('; ');rows.push([g.name,fm.name,f.name,fAc(f),fs.crop||'',fs.variety||'',fs.tillage||'',fs.targetYield||'',plantings,progs,f.notes||'']);})})}); const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,`Plan ${season}`); XLSX.writeFile(wb,`FieldDesk_${season}.xlsx`); }
 
 // ════════════════════════════════════════
 //  NAVIGATION
@@ -9777,7 +10432,7 @@ function _sortFieldsForReport(fields, sortKey, season){
       var ca=fieldCropLabel(a.id,season)||''; var cb=fieldCropLabel(b.id,season)||'';
       return ca.localeCompare(cb)||a.name.localeCompare(b.name);
     }
-    if(sortKey==='acres') return (+b.acres)-(+a.acres);
+    if(sortKey==='acres') return fAc(b)-fAc(a);
     if(sortKey==='field') return a.name.localeCompare(b.name);
     if(sortKey==='farm'){
       var fma=(S.farms.find(function(x){return x.id===a.farmId;})||{}).name||'';
@@ -9811,7 +10466,7 @@ function _progNamesFor(fid, isFallSet, extraSeason){
 // Convert field GeoJSON boundary to a small inline SVG thumbnail
 function fieldThumbSvg(fid, size){
   size=size||48;
-  var geom=S.fieldGeoms&&S.fieldGeoms[fid];
+  var geom=S.fieldGeoms&&fGeom(fid);
   if(!geom) return '';
   try {
     var coords=null;
@@ -9838,14 +10493,14 @@ function fieldThumbSvg(fid, size){
 
 // Global acresForFP — used by products, products-byprog, prog-tracker
 function acresForFP(f,fp){
-  if(fp.treatmentAreaId){var ta=(S.treatmentAreas||[]).find(function(x){return x.id===fp.treatmentAreaId;});return ta?+ta.acres||0:+f.acres||0;}
+  if(fp.treatmentAreaId){var ta=(S.treatmentAreas||[]).find(function(x){return x.id===fp.treatmentAreaId;});return ta?+ta.acres||0:+fAc(f)||0;}
   if(fp.plantingIds&&fp.plantingIds.length){return fp.plantingIds.reduce(function(sum,pid){var p=S.plantings.find(function(x){return x.id===pid;});return sum+(p?+p.acres||0:0);},0);}
   if(fp.cropZoneId){var cz=S.zones.find(function(x){return x.id===fp.cropZoneId;});if(cz)return +cz.acres||0;}
   // Smart fallback: if field has exactly one named crop planting this season covering less than full field, use it
   var fpSeason=fp.season||S.curSeason;
   var seasonPs=(S.plantings||[]).filter(function(p){return p.fieldId===f.id&&p.season===fpSeason&&p.crop&&p.crop!=='Unknown';});
-  if(seasonPs.length===1){var spAc=+seasonPs[0].acres||0;if(spAc>0&&spAc<+f.acres-0.5)return spAc;}
-  return +f.acres||0;
+  if(seasonPs.length===1){var spAc=+seasonPs[0].acres||0;if(spAc>0&&spAc<+fAc(f)-0.5)return spAc;}
+  return +fAc(f)||0;
 }
 
 function _applyPlanColOrder(tbl){
@@ -10050,7 +10705,7 @@ function generateReport(){
         });
       } else {
         var crop=getFieldCrop(f.id,season)||'Unassigned';
-        byCrop[crop]=(byCrop[crop]||0)+(+f.acres||0);
+        byCrop[crop]=(byCrop[crop]||0)+(+fAc(f)||0);
         if(!byCropFieldIds[crop]) byCropFieldIds[crop]=new Set();
         byCropFieldIds[crop].add(f.id);
       }
@@ -10058,14 +10713,14 @@ function generateReport(){
     const totalAcres=fields.reduce((s,f)=>{
       var ps=getPlantings(f.id,season).filter(function(p){return p.crop&&p.crop!=='Unknown';});
       if(ps.length) return s+ps.reduce(function(t,p){return t+(+p.acres||0);},0);
-      return s+(+f.acres||0);
+      return s+(+fAc(f)||0);
     },0);
 
     // Build field list sorted by crop, then field name
     const _rsSortA=(document.getElementById('rptSortA')||{}).value||'grower';
     const sortedFieldsByCrop=[...fields].sort((a,b)=>{
       const ca=fieldCropLabel(a.id,season)||'Unassigned'; const cb=fieldCropLabel(b.id,season)||'Unassigned';
-      if(_rsSortA==='acres') return (+b.acres)-(+a.acres);
+      if(_rsSortA==='acres') return fAc(b)-fAc(a);
       if(_rsSortA==='field') return a.name.localeCompare(b.name);
       const _ga=(S.growers.find(x=>x.id===a.growerId)||{}).name||''; const _gb=(S.growers.find(x=>x.id===b.growerId)||{}).name||'';
       if(_rsSortA==='grower') return _ga.localeCompare(_gb)||a.name.localeCompare(b.name);
@@ -10108,14 +10763,14 @@ function generateReport(){
         <div style="margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;border-top:2px solid var(--rule);padding-top:10px">
             <span class="cb ${cropClass(cropName)}" style="font-size:11px">${cropName}</span>
-            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${(()=>{var _df=new Set(flds.map(function(ff){return ff.id;}));return _df.size+' field'+(_df.size!==1?'s':'')+(flds.length>_df.size?' · '+flds.length+' plantings':'');})()} · ${flds.reduce((s,f)=>{if(f._zA)return s+(+f._zA||0);var _fps=getPlantings(f.id,season).filter(function(p){return p.crop&&p.crop!=='Unknown';});var _cropAc=_fps.filter(function(p){return p.crop===cropName;});if(_cropAc.length)return s+_cropAc.reduce(function(t,p){return t+(+p.acres||0);},0);if(_fps.length)return s+_fps.reduce(function(t,p){return t+(+p.acres||0);},0);return s+(+f.acres||0);},0).toFixed(1)} ac</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${(()=>{var _df=new Set(flds.map(function(ff){return ff.id;}));return _df.size+' field'+(_df.size!==1?'s':'')+(flds.length>_df.size?' · '+flds.length+' plantings':'');})()} · ${flds.reduce((s,f)=>{if(f._zA)return s+(+f._zA||0);var _fps=getPlantings(f.id,season).filter(function(p){return p.crop&&p.crop!=='Unknown';});var _cropAc=_fps.filter(function(p){return p.crop===cropName;});if(_cropAc.length)return s+_cropAc.reduce(function(t,p){return t+(+p.acres||0);},0);if(_fps.length)return s+_fps.reduce(function(t,p){return t+(+p.acres||0);},0);return s+(+fAc(f)||0);},0).toFixed(1)} ac</span>
           </div>
           <table class="t"><thead><tr><th>Field</th><th>Grower</th><th>Farm</th><th>Acres</th><th>Variety</th></tr></thead><tbody>
             ${flds.map(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); const ps=getPlantings(f.id,season); const variety=f._iz?ps.find(function(p){return p.name===f._zN;})?ps.find(function(p){return p.name===f._zN;}).variety||'':'':[...new Set(ps.filter(function(p){return p.variety;}).map(function(p){return p.variety;}))] .join(', ')||(getFS(f.id,season)||{}).variety||''; return `<tr class="rpt-row" onclick="navigateToField('${f.id}')" title="Click to open field detail">
               <td><strong class="rpt-link">${esc(f.name)}</strong>${f._iz?`<div style="font-size:10px;color:var(--sage)">${esc(f._zN)}</div>`:f.alias?`<div style="font-size:10px;color:var(--muted);font-style:italic">${esc(f.alias)}</div>`:''}</td>
               <td style="font-size:11.5px;color:var(--muted)">${esc(g?g.name:'')}</td>
               <td style="font-size:11.5px;color:var(--muted)">${esc(fm?fm.name:'')}</td>
-              <td style="font-family:'IBM Plex Mono',monospace">${f._zA!=null?(+(f._zA||0)).toFixed(1):(+f.acres).toFixed(1)}</td>
+              <td style="font-family:'IBM Plex Mono',monospace">${f._zA!=null?(+(f._zA||0)).toFixed(1):(+fAc(f)).toFixed(1)}</td>
               <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${esc(variety)}</td>
             </tr>`; }).join('')}
           </tbody></table>
@@ -10134,14 +10789,14 @@ function generateReport(){
             <td style="font-size:11.5px">${esc(g?g.name:'')}</td>
             <td style="font-size:11.5px;color:var(--muted)">${esc(fm?fm.name:'')}</td>
             <td><strong class="rpt-link">${esc(f.name)}</strong>${f.alias?`<div style="font-size:10px;color:var(--muted);font-style:italic">${esc(f.alias)}</div>`:''}<div style="margin-top:3px">${renderFieldTags(f.tags)}</div></td>
-            <td style="font-family:'IBM Plex Mono',monospace">${(+f.acres).toFixed(1)}</td>
+            <td style="font-family:'IBM Plex Mono',monospace">${(+fAc(f)).toFixed(1)}</td>
             <td>${fldCrops.length?fldCrops.map(c=>`<span class="cb ${cropClass(c)}" style="font-size:10px">${c}</span>`).join(' '):''}</td>
             <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${esc(fs?fs.variety:'')}</td>
             <td style="font-size:11.5px">${esc(fs?fs.tillage:'')}</td>
             <td style="font-size:11.5px;color:var(--muted)">${esc(progs)}</td>
           </tr>`;}).join('')}
       </tbody></table>
-      <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${sortedFields.length} fields &bull; ${sortedFields.reduce((s,f)=>s+(+f.acres||0),0).toFixed(1)} total acres</div>
+      <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${sortedFields.length} fields &bull; ${sortedFields.reduce((s,f)=>s+(+fAc(f)||0),0).toFixed(1)} total acres</div>
     `);
 
   } else if(type==='products'){
@@ -10164,7 +10819,7 @@ function generateReport(){
           const defaultTotal=(pr.ingredients||[]).reduce((s,i)=>s+(+i.rate||0),0);
           const unit=(pr.ingredients[0]||{}).unit||'lb/ac';
           // Compute prorate for planting-scoped programs (used by BOTH ingredient and blend calcs)
-          const _fac2=+(f.acres||0);
+          const _fac2=+(fAc(f)||0);
           const _fps2=fp.plantingIds&&fp.plantingIds.length?(S.plantings||[]).find(function(p){return fp.plantingIds.includes(p.id);}):null;
           const _proRate2=_fps2&&_fac2>0?Math.min(1,(+(_fps2.acres||_fac2))/_fac2):1;
           // Scale zone-based qty to fAc when smart-fallback returns planting acres but zones use full field acres
@@ -10694,7 +11349,7 @@ function generateReport(){
           return '<tr style="border-bottom:1px solid var(--rule2)">'
             +'<td style="padding:5px 8px;vertical-align:top">'+fieldThumbSvg(f.id,36)+'<div><strong>'+esc(f.name)+'</strong>'+(f.alias?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+esc(f.alias)+'</div>':'')
             +'<div style="font-size:9px;color:var(--muted)">'+esc(g?g.name:'')+' · '+esc(fm?fm.name:'')+'</div></div></td>'
-            +'<td style="padding:7px 8px;font-family:IBM Plex Mono,monospace;font-size:11px;vertical-align:top">'+f.acres+'</td>'
+            +'<td style="padding:7px 8px;font-family:IBM Plex Mono,monospace;font-size:11px;vertical-align:top">'+fAc(f)+'</td>'
             +'<td style="padding:7px 8px;vertical-align:top">'+prevBadges+'</td>'
             +'<td style="padding:7px 8px;font-size:11px;color:var(--muted);vertical-align:top">'+esc(fallProgs||'—')+'</td>'
             +'<td style="padding:7px 8px;font-size:11px;color:var(--muted);vertical-align:top">'+esc(springProgs||'—')+'</td>'
@@ -10704,7 +11359,7 @@ function generateReport(){
         }).join('')}
         </tbody>
       </table>
-      <div style="margin-top:10px;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">${_planFields.length} fields · ${_planFields.reduce(function(s,f){return s+(+f.acres||0);},0).toFixed(1)} acres</div>
+      <div style="margin-top:10px;font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted)">${_planFields.length} fields · ${_planFields.reduce(function(s,f){return s+(+fAc(f)||0);},0).toFixed(1)} acres</div>
     `);
 
   } else if(type==='worksheet'){
@@ -10826,7 +11481,7 @@ function generateReport(){
           +'<strong style="font-size:13px">'+esc(f.name)+'</strong>'
           +(f.alias?'<em style="font-size:11px;color:var(--muted)">'+esc(f.alias)+'</em>':'')
           +'<span style="font-size:11px;color:var(--muted)">'+esc(g?g.name:'')+' · '+esc(fm?fm.name:'')+'</span>'
-          +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;margin-left:auto">'+f.acres+' ac</span>'
+          +'<span style="font-family:IBM Plex Mono,monospace;font-size:11px;margin-left:auto">'+fAc(f)+' ac</span>'
           +(isVRT?'<span style="font-size:9px;padding:1px 6px;background:rgba(100,120,230,.2);color:#99aaff;border:1px solid #99aaff;border-radius:8px">VRT</span>':'')
           +'</div>'
           +'<div style="padding:8px 0">'
@@ -10855,7 +11510,7 @@ function generateReport(){
       <table class="t"><thead><tr><th>Field</th><th>Acres</th>${rotSeasons.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>
         ${_sortedRot.map(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); return `<tr>
           <td><strong>${esc(f.name)}</strong><div style="font-size:10px;color:var(--muted)">${esc(g?g.name:'')} &rsaquo; ${esc(fm?fm.name:'')}</div></td>
-          <td style="font-family:'IBM Plex Mono',monospace">${(+f.acres).toFixed(1)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${(+fAc(f)).toFixed(1)}</td>
           ${rotSeasons.map(sy=>{ const fs=getFS(f.id,sy); const c=fs?fs.crop:''; return `<td>${c?`<span class="cb ${cropClass(c)}" style="font-size:9.5px">${c}</span>`:''}</td>`; }).join('')}
         </tr>`; }).join('')}
       </tbody></table>
@@ -10880,8 +11535,8 @@ function generateReport(){
         if(!cropMap[crop]) cropMap[crop]={fields:[],fieldAcres:{},totalAc:0};
         if(!cropMap[crop].fieldAcres[f.id]){
           cropMap[crop].fields.push(f);
-          cropMap[crop].fieldAcres[f.id]=+f.acres||0;
-          cropMap[crop].totalAc+=(+f.acres||0);
+          cropMap[crop].fieldAcres[f.id]=+fAc(f)||0;
+          cropMap[crop].totalAc+=(+fAc(f)||0);
         }
       }
     });
@@ -10898,7 +11553,7 @@ function generateReport(){
           if(!pr) return;
           if(!progUsage[pr.id]) progUsage[pr.id]={pr:pr,fieldData:{}};
           var fpAc=acresForFP(f,fp);
-          var cropAcForField=info.fieldAcres[f.id]||+f.acres||0;
+          var cropAcForField=info.fieldAcres[f.id]||+fAc(f)||0;
           var isWholeField=!fp.plantingIds||!fp.plantingIds.length;
           progUsage[pr.id].fieldData[f.id]={fpAc:fpAc,cropAc:cropAcForField,isWholeField:isWholeField,fp:fp};
         });
@@ -10915,7 +11570,7 @@ function generateReport(){
           var appliedFids=new Set(Object.keys(pu.fieldData));
           var appliedAc=Object.values(pu.fieldData).reduce(function(s,d){return s+d.fpAc;},0);
           var missingFields=info.fields.filter(function(f){return !appliedFids.has(f.id);});
-          var missingAc=missingFields.reduce(function(s,f){return s+(info.fieldAcres[f.id]||+f.acres||0);},0);
+          var missingAc=missingFields.reduce(function(s,f){return s+(info.fieldAcres[f.id]||+fAc(f)||0);},0);
           // Detect scope mismatches: fields where fpAc ≠ cropAc
           var scopeIssues=[];
           Object.keys(pu.fieldData).forEach(function(fid){
@@ -10941,7 +11596,7 @@ function generateReport(){
             +'<td style="font-size:11px">';
           if(hasMissing){
             html+=missingFields.sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(f){
-              return '<span onclick="navigateToField(\''+f.id+'\')" style="cursor:pointer;color:var(--rust);text-decoration:underline;text-underline-offset:2px" title="Missing — click to open">'+esc(f.name)+' <span style="font-size:9px">('+_fmtN(info.fieldAcres[f.id]||f.acres,1)+'ac)</span></span>';
+              return '<span onclick="navigateToField(\''+f.id+'\')" style="cursor:pointer;color:var(--rust);text-decoration:underline;text-underline-offset:2px" title="Missing — click to open">'+esc(f.name)+' <span style="font-size:9px">('+_fmtN(info.fieldAcres[f.id]||fAc(f),1)+'ac)</span></span>';
             }).join(', ');
           } else if(hasScope){
             html+='<span style="color:var(--leaf)">✓ All fields</span> <span style="color:var(--wheat);font-size:10px">but '+scopeIssues.length+' scope issue'+(scopeIssues.length!==1?'s':'')+':</span> ';
@@ -10982,7 +11637,7 @@ function generateReport(){
         .sort(function(a,b){return b.appliedAc-a.appliedAc;})
         .map(function(pc){
           var missingFields=info.fields.filter(function(f){return !pc.fieldIds.has(f.id);});
-          var missingAc=missingFields.reduce(function(s,f){return s+(info.fieldAcres[f.id]||+f.acres||0);},0);
+          var missingAc=missingFields.reduce(function(s,f){return s+(info.fieldAcres[f.id]||+fAc(f)||0);},0);
           var acDiff=pc.appliedAc-cropTotalAc;
           var acMatch=Math.abs(acDiff)<1&&missingFields.length===0;
           var hasMissing=missingFields.length>0;
@@ -11062,12 +11717,12 @@ function exportReportXLSX(){
       var fps=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===_eS);
       var fs=getFS(f.id,_eS)||{};
       var isVRT=!!(f.vrt&&f.vrtZones&&defs.length);
-      var zones=isVRT?defs:[{_flat:true,acres:f.acres}];
+      var zones=isVRT?defs:[{_flat:true,acres:fAc(f)}];
       zones.forEach(function(z,zi){
         var zn=z._flat?null:_zoneEffectiveNum(z);
         var row=[zi===0?f.name+(f.alias?' ('+f.alias+')':''):''];
         if(_eHG) row.push(zi===0?(g?g.name:'')+(fm?' '+fm.name:''):'');
-        row.push(zi===0?+f.acres:'',zi===0?crop:'',z._flat?'Flat':'Z'+zn,+(z.acres||f.acres));
+        row.push(zi===0?+fAc(f):'',zi===0?crop:'',z._flat?'Flat':'Z'+zn,+(z.acres||fAc(f)));
         _ePC.forEach(function(pc){
           var fp2=fps.find(function(fp){return fp.programId===pc.id;});
           var pr2=fp2?S.programs.find(function(p){return p.id===pc.id;}):null;
@@ -11132,16 +11787,16 @@ function exportReportXLSX(){
   let aoaFallback;
   if(type==='rotation'){
     aoaFallback=[['Field','Grower','Farm','Acres',...rotSeasons]];
-    fields.forEach(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); aoa.push([f.name,g?g.name:'',fm?fm.name:'',+f.acres,...rotSeasons.map(sy=>{ const fs=getFS(f.id,sy); return fs?fs.crop||'':''; })]); });
+    fields.forEach(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); aoa.push([f.name,g?g.name:'',fm?fm.name:'',+fAc(f),...rotSeasons.map(sy=>{ const fs=getFS(f.id,sy); return fs?fs.crop||'':''; })]); });
   } else if(type==='products'||type==='prescriptions'){
     aoaFallback=[['Product','Type','Total Quantity','Unit','Fields']];
     const totals={}; 
-    if(type==='products'){ fields.forEach(f=>{ S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).forEach(fp=>{ const pr=S.programs.find(p=>p.id===fp.programId); if(!pr)return; (pr.ingredients||[]).forEach(ing=>{ const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null; const name=prod?prod.name:ing.product||'?'; const key=name+'||'+ing.unit; if(!totals[key])totals[key]={name,unit:ing.unit,type:pr.type,qty:0,fields:[]}; totals[key].qty+=(+ing.rate||0)*(+f.acres||0); totals[key].fields.push(f.name); }); }); }); }
+    if(type==='products'){ fields.forEach(f=>{ S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).forEach(fp=>{ const pr=S.programs.find(p=>p.id===fp.programId); if(!pr)return; (pr.ingredients||[]).forEach(ing=>{ const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null; const name=prod?prod.name:ing.product||'?'; const key=name+'||'+ing.unit; if(!totals[key])totals[key]={name,unit:ing.unit,type:pr.type,qty:0,fields:[]}; totals[key].qty+=(+ing.rate||0)*(+fAc(f)||0); totals[key].fields.push(f.name); }); }); }); }
     else { S.prescriptions.filter(r=>r.season===season&&(!gV||S.fields.find(x=>x.id===r.fieldId)?.growerId===gV)).forEach(rx=>{ const key=rx.product+'||'+rx.unit; if(!totals[key])totals[key]={name:rx.product,unit:rx.unit,type:rx.type,qty:0,fields:[]}; (rx.zones||[]).forEach(z=>{totals[key].qty+=(+(z.rate||0))*(+(z.acres||0));}); const f=S.fields.find(x=>x.id===rx.fieldId); if(f)totals[key].fields.push(f.name); }); }
     Object.values(totals).forEach(p=>aoa.push([p.name,p.type,p.qty.toFixed(1),p.unit,[...new Set(p.fields)].join(', ')]));
   } else {
     aoaFallback=[['Grower','Farm','Field','Acres','Crop','Variety','Tillage','Programs']];
-    fields.forEach(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); const fs=getFS(f.id,season); const progs=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).map(fp=>{ const pr=S.programs.find(p=>p.id===fp.programId); return pr?pr.name:''; }).join('; '); aoa.push([g?g.name:'',fm?fm.name:'',f.name,+f.acres,fs?fs.crop||'':'',fs?fs.variety||'':'',fs?fs.tillage||'':'',progs]); });
+    fields.forEach(f=>{ const g=S.growers.find(x=>x.id===f.growerId); const fm=S.farms.find(x=>x.id===f.farmId); const fs=getFS(f.id,season); const progs=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).map(fp=>{ const pr=S.programs.find(p=>p.id===fp.programId); return pr?pr.name:''; }).join('; '); aoa.push([g?g.name:'',fm?fm.name:'',f.name,+fAc(f),fs?fs.crop||'':'',fs?fs.variety||'':'',fs?fs.tillage||'':'',progs]); });
   }
   if(aoaFallback){const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(aoaFallback); XLSX.utils.book_append_sheet(wb,ws,'Report'); XLSX.writeFile(wb,`FieldDesk_${type}_${season}.xlsx`);}
 }
@@ -11163,7 +11818,7 @@ function renderGrowerDetail(gid){
   const g=S.growers.find(x=>x.id===gid); if(!g)return;
   const gFarms=S.farms.filter(f=>f.growerId===gid);
   const gFlds=S.fields.filter(f=>f.growerId===gid);
-  const totalAcres=gFlds.reduce((s,f)=>s+(+f.acres||0),0);
+  const totalAcres=gFlds.reduce((s,f)=>s+(+fAc(f)||0),0);
 
   document.getElementById('gd-name').textContent=g.name;
   document.getElementById('gd-sub').textContent=`${gFlds.length} fields · ${totalAcres.toFixed(1)}ac · ${gFarms.length} farm${gFarms.length!==1?'s':''}`;
@@ -11171,7 +11826,7 @@ function renderGrowerDetail(gid){
 
   // Crop breakdown for current season
   const byCrop={};
-  gFlds.forEach(f=>{ const fs=getFS(f.id); const c=fs&&fs.crop?fs.crop:'Unassigned'; byCrop[c]=(byCrop[c]||0)+(+f.acres||0); });
+  gFlds.forEach(f=>{ const fs=getFS(f.id); const c=fs&&fs.crop?fs.crop:'Unassigned'; byCrop[c]=(byCrop[c]||0)+(+fAc(f)||0); });
 
   document.getElementById('gd-body').innerHTML=`
     <div style="display:grid;grid-template-columns:300px 1fr;gap:18px;margin-bottom:18px">
@@ -11204,7 +11859,7 @@ function renderGrowerDetail(gid){
 
     ${gFarms.map(fm=>{
       const fmFlds=S.fields.filter(f=>f.farmId===fm.id);
-      const fmAc=fmFlds.reduce((s,f)=>s+(+f.acres||0),0);
+      const fmAc=fmFlds.reduce((s,f)=>s+(+fAc(f)||0),0);
       return `<div style="background:var(--white);border:1.5px solid var(--rule);border-radius:var(--rr);margin-bottom:14px;overflow:hidden">
         <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--fog);border-bottom:1px solid var(--rule2)">
           <div>
@@ -11230,7 +11885,7 @@ function renderGrowerDetail(gid){
                 ${(szones||mzones)?`<span class="fld-split" style="font-size:9px">(${szones?szones+' sz':mzones+' mz'})</span>`:''}
               </td>
               <td style="font-size:11.5px;color:var(--muted);font-style:italic">${esc(f.alias||'')}</td>
-              <td style="font-family:'IBM Plex Mono',monospace">${(+f.acres).toFixed(1)}</td>
+              <td style="font-family:'IBM Plex Mono',monospace">${(+fAc(f)).toFixed(1)}</td>
               <td>${crop?`<span class="cb ${cropClass(crop)}" style="font-size:10px">${crop}</span>`:''}</td>
               <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${esc(variety)}</td>
               <td style="font-family:'IBM Plex Mono',monospace;text-align:center">${progs?`<span style="color:var(--sage)">${progs}</span>`:''}</td>
@@ -11525,7 +12180,7 @@ function printReportPDF(){
           var row=[];
           row.push(zi===0?fieldName:'');
           if(_hasGrower2) row.push(zi===0?growerCell:'');
-          row.push(zi===0?_fmtN(f.acres,1):'');
+          row.push(zi===0?_fmtN(fAc(f),1):'');
           row.push(zi===0?crop:'');
           row.push('Z'+zn);
           row.push(_fmtN(+(z.acres||0),1));
@@ -11548,7 +12203,7 @@ function printReportPDF(){
         // Single row for flat-rate field
         var row=[fieldName];
         if(_hasGrower2) row.push(growerCell);
-        row.push(_fmtN(f.acres,1),crop,'Flat',_fmtN(f.acres,1));
+        row.push(_fmtN(fAc(f),1),crop,'Flat',_fmtN(fAc(f),1));
         _wsProgCols.forEach(function(pc){
           row.push(_zRates[pc.id]&&_zRates[pc.id]['flat']!==undefined?_zRates[pc.id]['flat']:'—');
         });
@@ -11684,13 +12339,13 @@ const doc=new jsPDF({orientation:_isLandscape?'landscape':'portrait',unit:'mm',f
         const crop=fieldCropLabel(f.id,season);
         const ps=getPlantings(f.id,season); const variety=ps.length?[...new Set(ps.filter(p=>p.variety).map(p=>p.variety))].join(', '):(getFS(f.id,season)||{}).variety||'';
         const progs=S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season).map(fp=>{const pr=S.programs.find(p=>p.id===fp.programId);return pr?pr.name:'';}).filter(Boolean).join(', ');
-        return [g?g.name:'',fm?fm.name:'',f.name+(f.alias?' ('+f.alias+')':''), (+f.acres).toFixed(1), crop, variety, progs];
+        return [g?g.name:'',fm?fm.name:'',f.name+(f.alias?' ('+f.alias+')':''), (+fAc(f)).toFixed(1), crop, variety, progs];
       });
     }
     doc.autoTable({startY:26,head:[pdfHead],body:pdfRows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:logoColor,textColor:[220,162,40],fontStyle:'bold'},alternateRowStyles:{fillColor:[242,248,237]}});
     const finalY=doc.lastAutoTable.finalY+6;
     doc.setFontSize(8); doc.setTextColor(...mutedColor);
-    doc.text(pdfRows.length+' fields · '+fields.reduce((s,f)=>s+(+f.acres||0),0).toFixed(1)+' total acres',10,finalY);
+    doc.text(pdfRows.length+' fields · '+fields.reduce((s,f)=>s+(+fAc(f)||0),0).toFixed(1)+' total acres',10,finalY);
 
   } else if(type==='acres'){
     addPdfHeader(doc,'Crop Acres Summary');
@@ -11717,12 +12372,12 @@ const doc=new jsPDF({orientation:_isLandscape?'landscape':'portrait',unit:'mm',f
     fields.forEach(function(f){
       var ps=getPlantings(f.id,season).filter(function(p){return p.crop&&p.crop!=='Unknown';});
       if(ps.length){ps.forEach(function(p){byCrop[p.crop]=(byCrop[p.crop]||0)+(+p.acres||0);});}
-      else{var crop=getFieldCrop(f.id,season)||'Unassigned';byCrop[crop]=(byCrop[crop]||0)+(+f.acres||0);}
+      else{var crop=getFieldCrop(f.id,season)||'Unassigned';byCrop[crop]=(byCrop[crop]||0)+(+fAc(f)||0);}
     });
     const totalAcres=fields.reduce((s,f)=>{
       var _ps2=getPlantings(f.id,season).filter(function(p){return p.crop&&p.crop!=='Unknown';});
       if(_ps2.length) return s+_ps2.reduce(function(t,p){return t+(+p.acres||0);},0);
-      return s+(+f.acres||0);
+      return s+(+fAc(f)||0);
     },0);
     const cropRows=Object.entries(byCrop).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,ac])=>[c,ac.toFixed(1),(totalAcres>0?(ac/totalAcres*100).toFixed(1)+'%':'0%')]);
     cropRows.push(['TOTAL',totalAcres.toFixed(1),'100%']);
@@ -11742,7 +12397,7 @@ const doc=new jsPDF({orientation:_isLandscape?'landscape':'portrait',unit:'mm',f
         var crop=getFieldCrop(f.id,season)||'Unassigned';
         var variety=ps.length===1?ps[0].variety||'':(getFS(f.id,season)||{}).variety||'';
         if(!cropSectionsPdf[crop])cropSectionsPdf[crop]=[];
-        cropSectionsPdf[crop].push({f:f,acres:(+f.acres||0).toFixed(1),variety:variety,multi:false});
+        cropSectionsPdf[crop].push({f:f,acres:(+fAc(f)||0).toFixed(1),variety:variety,multi:false});
       }
     });
     let curY=doc.lastAutoTable.finalY+10;
@@ -11778,7 +12433,7 @@ const doc=new jsPDF({orientation:_isLandscape?'landscape':'portrait',unit:'mm',f
     addPdfHeader(doc,'Rotation History');
     const rows=fields.map(f=>{
       const g=S.growers.find(x=>x.id===f.growerId);const fm=S.farms.find(x=>x.id===f.farmId);
-      return [f.name,g?g.name:'',fm?fm.name:'',f.acres,...rotSeasons.map(sy=>{const fs=getFS(f.id,sy);return fs?fs.crop||'':'';})];
+      return [f.name,g?g.name:'',fm?fm.name:'',fAc(f),...rotSeasons.map(sy=>{const fs=getFS(f.id,sy);return fs?fs.crop||'':'';})];
     });
     doc.autoTable({startY:26,head:[['Field','Grower','Farm','Acres',...rotSeasons]],body:rows,styles:{fontSize:7.5,cellPadding:2},headStyles:{fillColor:logoColor,textColor:goldColor},alternateRowStyles:{fillColor:[242,248,237]},columnStyles:{3:{halign:'right'}}});
 
@@ -11912,7 +12567,7 @@ function _fdFixPlantingScopes(apply){
     if(fp.treatmentAreaId||fp.cropZoneId) return;
     var f=S.fields.find(function(x){return x.id===fp.fieldId;});
     if(!f) return;
-    var fAc=+f.acres||0;
+    var fAc=+fAc(f)||0;
     var season=fp.season||S.curSeason;
     var ps=(S.plantings||[]).filter(function(p){
       return p.fieldId===f.id&&p.season===season&&p.crop&&p.crop!=='Unknown';
@@ -11961,10 +12616,12 @@ function fdToast(msg, kind){
   try{
     var t=document.createElement('div');
     var bg = kind==='error' ? '#dc2626' : kind==='success' ? '#16a34a' : '#334155';
-    t.style.cssText='position:fixed;bottom:20px;right:20px;background:'+bg+';color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:100000;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:Inter,system-ui,sans-serif;';
+    var _stack=document.querySelectorAll('.fd-toast').length;
+    t.className='fd-toast';
+    t.style.cssText='position:fixed;bottom:'+(20+_stack*48)+'px;right:20px;max-width:560px;background:'+bg+';color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:100000;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:Inter,system-ui,sans-serif;';
     t.textContent=msg;
     document.body.appendChild(t);
-    setTimeout(function(){t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(function(){t.remove();},400);},2600);
+    setTimeout(function(){t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(function(){t.remove();},400);},msg.length>90?5000:2600);
   }catch(e){console.log(msg);}
 }
 
