@@ -4930,6 +4930,15 @@ function renderProgCard(fp,pr,fid){
           const _ingKey3=ing.productId||ing.id||'';
           const _ovr=fp.rateOverrides&&_ingKey3&&fp.rateOverrides[_ingKey3]!==undefined;
           const _dispRate=_ovr?fp.rateOverrides[_ingKey3]:ing.rate;
+          // Per-product zone rates (twin bin / fert-product VRT): show zone-weighted average instead of the flat default
+          const _hasIngZR=isVRT&&!isBlendPr&&Object.keys(ingRates).length>0;
+          let _zAvg=null;
+          if(_hasIngZR){
+            let _zw=0,_za=0;
+            vrtDefs.forEach(z=>{const _zN=_zoneEffectiveNum(z);const _iv=_zLookup(ingRates,_zN)??_zLookup(ingRates,z.num);const _r=(_iv!==undefined&&_iv!=='')?+_iv:+_dispRate||0;const _a=+(z.acres||0);_zw+=_r*_a;_za+=_a;});
+            _zAvg=_za>0?_zw/_za:null;
+          }
+          if(_zAvg!==null){ return `<tr><td><strong>${esc(name)}</strong></td><td style="font-size:11px;color:var(--muted)">${esc(ai)}</td><td style="font-family:'IBM Plex Mono',monospace" title="Zone-weighted average of the per-zone rates. Edit rates with ⚡ Zone Rates."><div style="font-weight:700;color:var(--sky)">${_fmtN(_zAvg,1)}</div><div style="font-size:8.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">zone avg</div></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${esc(ing.unit)}</td><td style="font-size:11.5px">${esc(ing.timing||'')}</td><td style="font-family:'IBM Plex Mono',monospace;color:var(--gold)">${cu?'$'+(cu*_zAvg).toFixed(2):''}</td>${zCols}${zAc}</tr>`; }
           const _rateCell=`<div style="display:flex;align-items:center;gap:3px">
             <input type="number" step="0.01" value="${_dispRate}"
               style="width:64px;font-family:'IBM Plex Mono',monospace;font-size:12px;background:${_ovr?'rgba(220,162,40,.12)':'transparent'};border:1px solid ${_ovr?'var(--wheat)':'var(--rule)'};border-radius:4px;padding:2px 5px;color:${_ovr?'var(--wheat)':'var(--ink)'}"
@@ -11734,65 +11743,62 @@ function generateReport(){
         const g=S.growers.find(x=>x.id===f.growerId),fm=S.farms.find(x=>x.id===f.farmId);
         const _fpAcL=acresForFP(f,fp);
         const vrtDefs4=f.vrtZoneDefs&&f.vrtZoneDefs.length?f.vrtZoneDefs:[];
-        const blendZR4=(function(){
-          var _isSeedPr=_ptProg.type==='seed'||_ptProg.type==='seed-corn'||_ptProg.type==='seed-soy';
-          if(_isSeedPr){
-            var _sing=_ptProg.ingredients&&_ptProg.ingredients[0];
-            var _skey=_sing&&(_sing.productId||_sing.id)||'';
-            return (fp.vrtRates&&_skey&&fp.vrtRates[_skey])||{};
-          }
-          var _piK=fp.vrtRates?Object.keys(fp.vrtRates).filter(function(k){return k!=='__blend__';}):[]; 
-          if(_piK.length>0&&!(fp.vrtRates&&fp.vrtRates['__blend__']&&Object.keys(fp.vrtRates['__blend__']).length)){
-            var _sy={};
-            (_ptProg.ingredients||[]).forEach(function(ing){var ik=ing.productId||ing.id;var ir=fp.vrtRates&&fp.vrtRates[ik]?fp.vrtRates[ik]:{};Object.keys(ir).forEach(function(zk){_sy[zk]=(_sy[zk]||0)+(+ir[zk]||0);});});
-            return _sy;
-          }
-          return fp.vrtRates&&fp.vrtRates['__blend__']||{};
-        })();
+        const _vr4=fp.vrtRates||{};
+        const _ptZR=function(obj,z){if(!obj)return null;var zn=_zoneEffectiveNum(z);var cands=[zn,String(zn),z.num,String(z.num)];for(var i=0;i<cands.length;i++){var v=obj[cands[i]];if(v!==undefined&&v!==null&&v!=='')return +v;}return null;};
+        const _isBlendPr4=_ptProg.type==='fert-blend';
+        const _blendZR4=(_isBlendPr4&&_vr4['__blend__']&&Object.keys(_vr4['__blend__']).length)?_vr4['__blend__']:null;
+        // Per-product zone rates (twin-bin / fert-product / seed) — keyed by ingredient productId/id
+        const _ingZR4=function(ing){if(_blendZR4)return null;var k=ing.productId||ing.id||'';var r=k?(_vr4[k]||_vr4[String(k)]):null;return r&&Object.keys(r).length?r:null;};
         const defTotal=_ptIngTotal(_ptProg);
+        const _hasVrt4=vrtDefs4.length>0&&(!!_blendZR4||(_ptProg.ingredients||[]).some(function(i){return !!_ingZR4(i);}));
         // Scale factor: if VRT zone acres don't match _fpAcL (e.g. planting-scoped _fpAcL vs full-field zones),
         // scale all zone-based qty calculations to _fpAcL so columns reconcile.
-        const tAc4=vrtDefs4.length&&Object.keys(blendZR4).length?vrtDefs4.reduce((s,z)=>s+(+(z.acres||0)),0):0;
+        const tAc4=_hasVrt4?vrtDefs4.reduce((s,z)=>s+(+(z.acres||0)),0):0;
         const _vrtScale=(tAc4>0&&_fpAcL>0)?_fpAcL/tAc4:1;
-        // Per-ingredient qty
+        // Per-ingredient qty — each product uses its OWN zone rates when set (twin bin), else blend split, else flat rate
+        const _comps4=[];
         (_ptProg.ingredients||[]).forEach(function(ing){
           const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null;
           const nm=prod?prod.name:ing.product||'?';
           const key=nm+'||'+ing.unit;
+          const _flat=getFPRate(fp,ing);
           const pct=defTotal>0?(+ing.rate/defTotal):1;
+          const izr=_ingZR4(ing);
           let qty=0;
-          if(vrtDefs4.length&&Object.keys(blendZR4).length){
-            vrtDefs4.forEach(function(z){const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);const zBlend=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);qty+=pct*zBlend*zAc;});
+          if(_hasVrt4&&(izr||_blendZR4)){
+            vrtDefs4.forEach(function(z){
+              const zAc=+(z.acres||0);let r;
+              if(izr){r=_ptZR(izr,z);if(r===null)r=_flat;}
+              else {const b=_ptZR(_blendZR4,z);r=b===null?_flat:pct*b;}
+              qty+=r*zAc;
+            });
             qty*=_vrtScale;
-          } else qty=pct*defTotal*_fpAcL;
+          } else qty=_flat*_fpAcL;
+          _comps4.push({key:key,name:nm,unit:ing.unit,qty:qty});
           if(!_ptCompTotals[key]) _ptCompTotals[key]={name:nm,unit:ing.unit,qty:0,acres:0};
           _ptCompTotals[key].qty+=qty; _ptCompTotals[key].acres+=_fpAcL;
         });
-        // Field avg blend rate — zone-weighted; stays as true rate, blendQty scaled separately by _vrtScale
-        let fieldBlendAvg=defTotal;
-        if(vrtDefs4.length&&Object.keys(blendZR4).length){
-          if(tAc4>0) fieldBlendAvg=vrtDefs4.reduce((s,z)=>{const zn=_zoneEffectiveNum(z);const zr=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);return s+zr*(+(z.acres||0));},0)/tAc4;
-        }
         const unit4=(_ptProg.ingredients&&_ptProg.ingredients[0]&&_ptProg.ingredients[0].unit)||'lb/ac';
-        const blendQty=vrtDefs4.length&&Object.keys(blendZR4).length
-          ?vrtDefs4.reduce((s,z)=>{const zn=_zoneEffectiveNum(z);const zr=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);return s+zr*(+(z.acres||0));},0)*_vrtScale
-          :defTotal*_fpAcL;
+        // Blend qty = sum of component qtys (so field total always reconciles with product columns)
+        const blendQty=_comps4.reduce((s,c)=>s+c.qty,0);
+        const fieldBlendAvg=_fpAcL>0?blendQty/_fpAcL:defTotal;
         // Store per-component qtys for dynamic recompute
-        const _compData=(function(){var _cmap={};(_ptProg.ingredients||[]).forEach(function(ing){
-            const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null;
-            const nm=prod?prod.name:ing.product||'?';
-            const pct=defTotal>0?(+ing.rate/defTotal):1;
-            let _cqty=0;
-            if(vrtDefs4.length&&Object.keys(blendZR4).length){
-              vrtDefs4.forEach(function(z){const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);const zBlend=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);_cqty+=pct*zBlend*zAc;});
-              _cqty*=_vrtScale;
-            } else { _cqty=pct*defTotal*_fpAcL; }
-            _cmap[nm+'||'+ing.unit]=_cqty.toFixed(2);
-          });return Object.entries(_cmap).map(function(e){return e[0]+'='+e[1];}).join(';');})();
-        return {f,g,fm,fp,fAc:_fpAcL,fieldBlendAvg,blendQty,unit:unit4,compData:_compData};
+        const _compData=_comps4.map(function(c){return c.key+'='+c.qty.toFixed(2);}).join(';');
+        return {f,g,fm,fp,fAc:_fpAcL,fieldBlendAvg,blendQty,unit:unit4,compData:_compData,comps:_comps4};
       }).filter(Boolean).sort((a,b)=>(a.g?a.g.name:'').localeCompare(b.g?b.g.name:'')!==0?(a.g?a.g.name:'').localeCompare(b.g?b.g.name:''):(a.f.name.localeCompare(b.f.name)));
       const _ptTotalAc=_ptFieldRows.reduce((s,r)=>s+r.fAc,0);
       const _ptTotalQty=_ptFieldRows.reduce((s,r)=>s+r.blendQty,0);
+      const _ptCompKeys=Object.keys(_ptCompTotals);
+      const _ptShowComps=_ptCompKeys.length>1; // per-product columns for multi-product (twin bin / blend) programs
+      const _ptFmtQty=function(q,unit,name){
+        const _fu=(S.settings&&S.settings.fertUnit)||'lb';const u=unit||'';const _isLb=u.toLowerCase().includes('lb');
+        const _isSd=u.includes('seed')||u.includes('sds')||u.includes('K seed');const _nm=(name||'').toLowerCase();
+        if(_isSd&&(_nm.includes('corn')||_nm.includes('maize')))return _fmtN(q/80000,1)+' units';
+        if(_isSd&&(_nm.includes('soy')||_nm.includes('bean')))return _fmtN(q/140000,1)+' units';
+        if(u.toLowerCase().includes('fl oz'))return _fmtN(q/128,1)+' gal';
+        if(_fu==='ton'&&_isLb)return _fmtN(q/2000,2)+' ton';
+        return _fmtN(q,0)+' '+esc(u.replace('/ac',''));
+      };
       el.innerHTML=wrap(`
         <div style="margin-bottom:14px;padding:10px 14px;background:var(--fog);border:1.5px solid var(--rule);border-radius:var(--r)">
           <div style="font-size:16px;font-weight:700;margin-bottom:4px">${esc(_ptProg.name)}</div>
@@ -11830,13 +11836,13 @@ function generateReport(){
             })()}</td></tr>
         </tbody></table>
         <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Fields — check to include/exclude from totals</div>
-        <table class="t"><thead><tr><th style="width:30px"><input type="checkbox" id="pt-all-cb" checked onchange="document.querySelectorAll('.pt-fcb').forEach(cb=>{cb.checked=this.checked;});ptRecompute('${_ptProgId}')"></th><th>Field</th><th>Grower</th><th>Farm</th><th style="text-align:right">Acres</th><th style="text-align:right">Avg Rate</th><th style="text-align:right">Total Qty</th><th>Status</th></tr></thead><tbody>
+        <table class="t"><thead><tr><th style="width:30px"><input type="checkbox" id="pt-all-cb" checked onchange="document.querySelectorAll('.pt-fcb').forEach(cb=>{cb.checked=this.checked;});ptRecompute('${_ptProgId}')"></th><th>Field</th><th>Grower</th><th>Farm</th><th style="text-align:right">Acres</th><th style="text-align:right">Avg Rate</th>${_ptShowComps?_ptCompKeys.map(k=>`<th style="text-align:right;color:var(--sky)" title="${esc(_ptCompTotals[k].name)}">${esc(_ptCompTotals[k].name)}</th>`).join(''):''}<th style="text-align:right">Total Qty</th><th>Status</th></tr></thead><tbody>
           ${_ptFieldRows.map(r=>`<tr><td><input type="checkbox" class="pt-fcb" data-fpid="${r.fp.id}" data-qty="${r.blendQty.toFixed(1)}" data-ac="${r.fAc.toFixed(1)}" data-comps="${r.compData||''}" checked onchange="ptRecompute('${_ptProgId}')"></td><td><strong class="rpt-link" onclick="navigateToField('${r.f.id}')">${esc(r.f.name)}</strong>${r.f.alias?`<div style="font-size:10px;color:var(--muted);font-style:italic">${esc(r.f.alias)}</div>`:''}</td><td style="font-size:11.5px;color:var(--muted)">${esc(r.g?r.g.name:'')}</td><td style="font-size:11.5px;color:var(--muted)">${esc(r.fm?r.fm.name:'')}</td><td style="font-family:'IBM Plex Mono',monospace;text-align:right">${r.fAc.toFixed(1)}</td><td style="font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--sky)">${(()=>{
               const _u5=r.unit||'';const _isSd5=_u5.includes('seed')||_u5.includes('sds')||_u5.includes('K seed')||_u5==='units/ac';
               const _isCS5=_ptProg.type==='seed-corn'||(_isSd5&&_ptProg.type==='seed');const _isSS5=_ptProg.type==='seed-soy';
               if(_isCS5||_isSS5||_isSd5) return _fmtN(r.fieldBlendAvg,0)+' sds/ac';
               return _fmtN(r.fieldBlendAvg,1);
-            })()}</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--sky);text-align:right" id="pt-qty-${r.fp.id}">${(()=>{
+            })()}</td>${_ptShowComps?_ptCompKeys.map(k=>{const c=(r.comps||[]).find(x=>x.key===k);const q=c?c.qty:0;const t=_ptCompTotals[k];return `<td style="font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap"><div>${_ptFmtQty(q,t.unit,t.name)}</div><div style="font-size:9.5px;color:var(--muted)">${r.fAc>0?_fmtN(q/r.fAc,0):'0'} ${esc((t.unit||'').replace('/ac',''))}/ac</div></td>`;}).join(''):''}<td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--sky);text-align:right" id="pt-qty-${r.fp.id}">${(()=>{
               const _u4=r.unit||'';const _isSd4=_u4.includes('seed')||_u4.includes('sds')||_u4.includes('K seed')||_u4==='units/ac';
               const _isCS4=_ptProg.type==='seed-corn'||(_isSd4&&_ptProg.type==='seed');const _isSS4=_ptProg.type==='seed-soy';
               const _isFo4=_u4.toLowerCase().includes('fl oz');const _isLb4=_u4.toLowerCase().includes('lb');const _fu4=(S.settings&&S.settings.fertUnit)||'lb';
