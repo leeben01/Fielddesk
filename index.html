@@ -318,6 +318,33 @@ select.ifc{cursor:pointer;}
 .map-info{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sage);margin-left:auto;}
 
 .map-container{flex:1;display:flex;overflow:hidden;position:relative;}
+.map-seg{display:flex;border:1px solid rgba(255,255,255,.18);border-radius:6px;overflow:hidden;}
+.map-seg button{background:rgba(255,255,255,.05);border:none;border-right:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.65);padding:5px 11px;font-size:11.5px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+.map-seg button:last-child{border-right:none;}
+.map-seg button.on{background:var(--gold);color:var(--soil);font-weight:700;}
+.map-app-ctl{position:absolute;left:10px;bottom:22px;z-index:700;width:300px;max-height:62%;overflow:auto;background:rgba(20,30,14,.94);color:#eee;border:1px solid rgba(255,255,255,.15);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-size:12px;}
+.map-app-ctl .mac-h{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.5);}
+.map-app-ctl .mac-chips{display:flex;flex-wrap:wrap;gap:4px;padding:2px 10px 8px;}
+.map-app-ctl .mac-chip{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.75);border-radius:12px;padding:2px 9px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.map-app-ctl .mac-chip.on{background:#fff;color:#1a2410;border-color:#fff;font-weight:600;}
+.map-app-ctl .mac-row{display:flex;align-items:center;gap:7px;padding:5px 10px;border-top:1px solid rgba(255,255,255,.07);cursor:pointer;}
+.map-app-ctl .mac-row:hover{background:rgba(255,255,255,.06);}
+.map-app-ctl .mac-row.on{background:rgba(255,224,102,.12);}
+.map-app-ctl .mac-sw{width:14px;height:10px;border-radius:2px;flex-shrink:0;}
+.map-app-ctl .mac-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.map-app-ctl .mac-ac{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:rgba(255,255,255,.6);white-space:nowrap;}
+.map-app-ctl select{background:rgba(255,255,255,.08);color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:4px;font-size:11px;padding:2px 4px;}
+.map-app-ctl select option{color:#111;}
+.map-app-ctl .mac-acts{display:flex;gap:5px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid rgba(255,255,255,.1);}
+.map-app-ctl .mac-acts button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#eee;border-radius:4px;font-size:10.5px;padding:3px 8px;cursor:pointer;}
+.map-app-ctl .mac-acts button:hover{border-color:var(--gold);color:var(--gold);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.br-tbl th{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--white);}
+.br-tbl td{padding:4px 6px;border-bottom:1px solid var(--rule2);}
+.br-seg{display:flex;gap:0;border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-bottom:10px;}
+.br-seg button{flex:1;background:var(--fog);border:none;border-right:1px solid var(--rule);padding:6px 8px;font-size:12px;cursor:pointer;color:var(--ink);}
+.br-seg button:last-child{border-right:none;}
+.br-seg button.on{background:var(--leaf);color:#fff;font-weight:600;}
 #theMap{flex:1;}
 
 /* Map right panel */
@@ -600,7 +627,7 @@ textarea.fc{resize:vertical;min-height:58px;}
       </div>
       <div id="bulkBar" class="bulk-bar" style="display:none">
         <span id="bulkTxt"></span>
-        <button class="btn btn-a btn-sm" onclick="openApplyAll(true)">Apply Program…</button>
+        <button class="btn btn-a btn-sm" onclick="openBulkRecord([...selectedRows])">＋ Program / Record…</button>
         <button class="btn btn-og btn-sm" onclick="openBulkCrop()">Set Crop…</button>
         <button class="btn btn-gh btn-sm" onclick="bulkClearCrop()" title="Remove crop assignment from selected fields">✕ Clear Crop</button>
         <button class="btn btn-s btn-sm" onclick="openBulkTag()">🏷 Tag…</button>
@@ -621,7 +648,14 @@ textarea.fc{resize:vertical;min-height:58px;}
         <span class="ml">Field Map</span>
         <button class="map-btn" onclick="zoomToAllFields()" title="Fit all fields in view">&#x1F310; All</button>
         <div class="map-tool-sep"></div>
+        <div class="map-seg" id="mapLayerSeg" title="Map layer">
+          <button data-l="fields" onclick="setMapLayer('fields')">Fields</button>
+          <button data-l="plantings" onclick="setMapLayer('plantings')">Plantings</button>
+          <button data-l="apps" onclick="setMapLayer('apps')">Applications</button>
+        </div>
+        <div class="map-tool-sep"></div>
         <button class="map-btn" id="btnSelectMode" onclick="activateTool('select')" title="Click a field to open it&#10;Shift-click to multi-select&#10;Click again or Esc to exit">&#x2197; Select</button>
+        <button class="map-btn" onclick="mapSelectVisible()" title="Select every field currently shown on the map (respects grower / crop filters)">&#x2611; All Visible</button>
         <div class="map-bdrop" id="bdropBoundary">
           <button class="map-btn" id="btnBoundaryMenu" onclick="toggleBdrop()" title="Boundary tools">&#x25A1; Boundary &#x25BE;</button>
           <div class="map-bdrop-menu" id="bdropMenu">
@@ -646,7 +680,7 @@ textarea.fc{resize:vertical;min-height:58px;}
           <option value="osm">Street Map</option>
           <option value="topo">Topo</option>
         </select>
-        <div id="mapSelectBadge" style="display:none;align-items:center;gap:5px"><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7)" id="mapSelCount">0 selected</span><button class="map-btn active" style="font-size:11px;padding:3px 9px" onclick="mapBulkSetCrop()">🌾 Set Crop</button><button class="map-btn active" style="font-size:11px;padding:3px 9px" onclick="applyProgramToSelected()">＋ Program</button><button class="map-btn" style="font-size:11px;padding:3px 9px" onclick="openMapBulkTag()">🏷 Tag</button></div>
+        <div id="mapSelectBadge" style="display:none;align-items:center;gap:5px"><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7)" id="mapSelCount">0 selected</span><button class="map-btn active" style="font-size:11px;padding:3px 9px" onclick="mapBulkSetCrop()">🌾 Set Crop</button><button class="map-btn active" style="font-size:11px;padding:3px 9px;background:rgba(80,180,60,.3);border-color:rgba(120,220,90,.6);color:#d8ffc8" onclick="openBulkRecord()" title="Add an existing program or build a new one (planned or applied) on all selected fields">＋ Program / Record</button><button class="map-btn" style="font-size:11px;padding:3px 9px" onclick="bulkMarkApplied()" title="Mark planned records on the selected fields as applied">✓ Mark Applied</button><button class="map-btn" style="font-size:11px;padding:3px 9px" onclick="openMapBulkTag()">🏷 Tag</button><button class="map-btn" style="font-size:11px;padding:3px 9px" onclick="mapClearSelection()" title="Clear selection">✕</button></div>
         <span class="map-info" id="mapInfo">Click a field · Shift-click to multi-select</span>
       </div>
       <div class="map-container">
@@ -656,6 +690,7 @@ textarea.fc{resize:vertical;min-height:58px;}
           <button onclick="clearMapFilter()" style="background:rgba(0,0,0,.15);border:none;color:var(--soil);border-radius:10px;padding:2px 8px;cursor:pointer;font-size:11px;font-weight:700">✕ Show All</button>
         </div>
         <div id="theMap"></div>
+        <div id="mapAppCtl" class="map-app-ctl" style="display:none"></div>
         <div class="map-panel" id="mapPanel">
           <div class="mp-head">
             <span class="mp-title" id="mpTitle">Select a field</span>
@@ -1018,6 +1053,7 @@ textarea.fc{resize:vertical;min-height:58px;}
           <option value="insecticide">🐛 Insecticide</option>
           <option value="fert-blend">🧪 Fertilizer — Blend</option>
           <option value="fert-product">🪣 Twin Bin</option>
+          <option value="fert-liquid">💧 Fertilizer — Liquid</option>
           <option value="seed">🌱 Seed / Seeding Rate</option>
           <option value="pgr">🔬 PGR</option>
           <option value="other">📋 Other</option>
@@ -1287,7 +1323,7 @@ textarea.fc{resize:vertical;min-height:58px;}
 
 <!-- ASSIGN PROG TO FIELD -->
 <div class="ov" id="ov-assign"><div class="modal">
-  <div class="mh"><div class="mh-t">Assign Program</div><button class="mx" onclick="closeM('assign')">✕</button></div>
+  <div class="mh"><div class="mh-t" id="asgn-title">Assign Program</div><button class="mx" onclick="closeM('assign')">✕</button></div>
   <div class="mb">
     <div class="fg">
       <label class="fl">Program
@@ -1332,7 +1368,13 @@ textarea.fc{resize:vertical;min-height:58px;}
       <div style="display:flex;gap:6px;margin-bottom:8px">
         <button class="btn btn-sm" id="asgn-scope-field" onclick="asgnSetScope('field')" style="flex:1">🌾 Whole Field</button>
         <button class="btn btn-sm" id="asgn-scope-planting" onclick="asgnSetScope('planting')" style="flex:1">🟢 Plantings</button>
-        <button class="btn btn-sm" id="asgn-scope-area" onclick="asgnSetScope('area')" style="flex:1">⬡ Treatment Area</button>
+        <button class="btn btn-sm" id="asgn-scope-area" onclick="asgnSetScope('area')" style="flex:1">⬡ Custom Area</button>
+        <button class="btn btn-sm" id="asgn-scope-acres" onclick="asgnSetScope('acres')" style="flex:1" title="Only part of the field was covered and there's no map — just enter the acres">✎ Acres Only</button>
+      </div>
+      <div id="asgn-scope-acres-wrap" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Acres covered</div>
+        <input class="fc" id="asgn-custom-ac" type="number" step="0.1" min="0" placeholder="e.g. 40" oninput="asgnUpdateAcresPreview(document.getElementById('asgn-fid').value)">
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px">Shown on the Applications map as the whole field outlined with a dotted line, labeled with these acres. Draw or import a Custom Area instead if you want the exact spot.</div>
       </div>
       <div id="asgn-scope-planting-wrap" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:6px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Select plantings to include</div>
@@ -1342,15 +1384,80 @@ textarea.fc{resize:vertical;min-height:58px;}
       <div id="asgn-scope-area-wrap" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:6px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Treatment Area</div>
         <select class="fc" id="asgn-area-sel" style="margin-bottom:6px" onchange="asgnUpdateAcresPreview(document.getElementById('asgn-fid').value)"></select>
-        <button class="btn btn-xs btn-gh" onclick="closeM('assign');asgnDrawTreatmentArea()">+ Draw New Area on Map</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-gh" onclick="closeM('assign');asgnDrawTreatmentArea()">+ Draw New Area on Map</button>
+          <button class="btn btn-xs btn-gh" onclick="var _f=document.getElementById('asgn-fid').value;closeM('assign');_eqb.fromAssign=true;openEquipBoundaryImport(_f,'area')" title="As-applied map / coverage shapefile from the equipment">📥 Area from File (as-applied)</button>
+          <button class="btn btn-xs btn-gh" onclick="asgnAreaFromPlantings()" title="Make a custom area from this season's or last season's planting shapes">⬡ From a Planting Shape</button>
+        </div>
       </div>
     </div>
     <div id="asgn-acres-preview" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
-    <div class="fg"><label class="fl">Notes</label><input class="fc" id="asgn-notes" placeholder="Optional"></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fc" id="asgn-status" onchange="document.getElementById('asgn-date-wrap').style.visibility=this.value==='applied'?'visible':'hidden'"><option value="planned">📋 Planned</option><option value="applied">✓ Applied</option></select></div>
+      <div class="fg" id="asgn-date-wrap" style="visibility:hidden"><label class="fl">Date applied</label><input class="fc" id="asgn-date" type="date"></div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fc" id="asgn-notes" placeholder="Optional — applicator, conditions, etc."></div>
     <input type="hidden" id="asgn-fid">
+    <input type="hidden" id="asgn-fpid">
     <input type="hidden" id="asgn-scope" value="field">
   </div>
-  <div class="mf"><button class="btn btn-gh" onclick="closeM('assign')">Cancel</button><button class="btn btn-g" onclick="assignProg()">Assign</button></div>
+  <div class="mf"><button class="btn btn-gh" onclick="closeM('assign')">Cancel</button><button class="btn btn-g" id="asgn-go" onclick="assignProg()">Assign</button></div>
+</div></div>
+
+<div class="ov" id="ov-bulkrec"><div class="modal" style="max-width:760px;width:96vw">
+  <div class="mh"><div class="mh-t" id="br-title">Add Program / Record</div><button class="mx" onclick="closeM('bulkrec')">✕</button></div>
+  <div class="mb">
+    <div class="br-seg" id="br-src-seg">
+      <button data-v="existing" onclick="brSetSrc('existing')">📚 Existing program</button>
+      <button data-v="new" onclick="brSetSrc('new')">＋ Build a new one</button>
+    </div>
+    <div id="br-existing">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input class="fc" id="br-search" placeholder="Search programs…" oninput="brFillProgs()" style="flex:1">
+        <select class="fc" id="br-cat" onchange="brFillProgs()" style="width:150px"></select>
+      </div>
+      <select class="fc" id="br-prog" size="7" onchange="brRefresh()" style="font-size:12px"></select>
+    </div>
+    <div id="br-new" style="display:none;background:var(--fog);border:1px solid var(--rule);border-radius:var(--r);padding:10px">
+      <div class="g2">
+        <div class="fg"><label class="fl">Name</label><input class="fc" id="br-n" placeholder="e.g. 100mesz+50potash" oninput="brRefresh()"></div>
+        <div class="fg"><label class="fl">Type</label><select class="fc" id="br-t" onchange="brRefresh()">
+          <option value="fert-blend">🧪 Fertilizer — Dry Blend</option><option value="fert-liquid">💧 Fertilizer — Liquid</option><option value="fert-product">🪣 Twin Bin</option>
+          <option value="herbicide">🌿 Herbicide</option><option value="fungicide">🍄 Fungicide</option><option value="insecticide">🐛 Insecticide</option>
+          <option value="seed">🌱 Seed / Seeding</option><option value="pgr">🔬 PGR</option><option value="other">📋 Other</option></select></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Timing</label><input class="fc" id="br-tm" list="br-timing-list" placeholder="Fall, Spring, Pre, Post…"><datalist id="br-timing-list"><option>Fall</option><option>Spring</option><option>Pre</option><option>Post</option><option>In-season</option></datalist></div>
+        <div class="fg"><label class="fl">Save to</label><select class="fc" id="br-owner"></select></div>
+      </div>
+      <label class="fl">Products</label>
+      <table class="br-tbl" id="br-ing"><thead><tr><th>Product</th><th style="width:90px">Rate</th><th style="width:100px">Unit</th><th style="width:30px"></th></tr></thead><tbody></tbody></table>
+      <button class="btn btn-xs btn-gh" style="margin-top:6px" onclick="brAddIng()">＋ Add product</button>
+      <datalist id="br-prod-list"></datalist>
+    </div>
+
+    <div class="g2" style="margin-top:12px">
+      <div class="fg"><label class="fl">Covers</label>
+        <select class="fc" id="br-cov" onchange="brRefresh()">
+          <option value="field">🌾 Whole field</option>
+          <option value="crop">🟢 Plantings of a crop…</option>
+          <option value="acres">✎ Custom acres (enter per field)</option>
+        </select></div>
+      <div class="fg" id="br-crop-wrap" style="display:none"><label class="fl">Crop</label><select class="fc" id="br-crop" onchange="brRefresh()"></select></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fc" id="br-status" onchange="brRefresh()"><option value="planned">📋 Planned</option><option value="applied">✓ Applied</option></select></div>
+      <div class="fg" id="br-date-wrap"><label class="fl">Date applied</label><input class="fc" id="br-date" type="date"></div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fc" id="br-notes" placeholder="Optional — applicator, conditions, etc."></div>
+    <div style="max-height:260px;overflow:auto;border:1px solid var(--rule);border-radius:var(--r)">
+      <table class="br-tbl"><thead><tr><th style="width:24px"><input type="checkbox" id="br-all" checked onchange="document.querySelectorAll('.br-fcb').forEach(c=>{if(!c.disabled)c.checked=this.checked});brTotals()"></th><th>Field</th><th>Grower</th><th>Crop</th><th style="width:96px;text-align:right">Acres</th><th></th></tr></thead><tbody id="br-fields"></tbody></table>
+    </div>
+    <div id="br-sum" style="margin-top:8px;font-size:12px;font-family:'IBM Plex Mono',monospace"></div>
+  </div>
+  <div class="mf"><button class="btn btn-gh" onclick="closeM('bulkrec')">Cancel</button><button class="btn btn-g" id="br-go" onclick="confirmBulkRecord()">Add</button></div>
 </div></div>
 
 <!-- ZONE EDIT -->
@@ -2544,7 +2651,7 @@ var _SEASON_GUARDED=['saveZone','deleteZone','deletePlantingFromPanel','plantWho
   'quickApplyToGrower','openApplyAll','openApplyAllWith','confirmApplyAll','openRemoveAll','confirmRemoveAll','toggleProgOnPlanting',
   'toggleProgOnField','applyProgramToSelected','showProgCropPicker','inlineCropSet','showCropPicker','openBulkCrop','confirmBulkCrop',
   'bulkClearCrop','mapBulkSetCrop','saveFieldSeasonNotes','saveRx','deleteRx','delRxFromList','openRxForField',
-  'quickEditPlanting','splitFPByPlanting','editFieldAcresInline','refitPlantingsToField','openEquipBoundaryImport','openZoneModal_edit'];
+  'quickEditPlanting','splitFPByPlanting','openBulkRecord','confirmBulkRecord','bulkMarkApplied','asgnAreaFromPlantings','editFieldAcresInline','refitPlantingsToField','openEquipBoundaryImport','openZoneModal_edit'];
 function _installSeasonGuards(){
   if(window._seasonGuardsInstalled) return;
   window._seasonGuardsInstalled=true;
@@ -2892,7 +2999,9 @@ function confirmSingleBorder(){
       pushUndo('Add treatment area');
       S.treatmentAreas=S.treatmentAreas||[];
       S.treatmentAreas.push({id:uid(),fieldId:fid,season:season,name:nm,acres:pAc,geom:_normGeom(pg),color:'#9060CC',notes:'From '+(document.getElementById('sb-srcfile').textContent||'file')});
-      fdToast('Treatment area "'+nm+'" added ('+pAc.toFixed(1)+' ac) — pick it under Program → Treatment area','success');
+      var _newTa=S.treatmentAreas[S.treatmentAreas.length-1];
+      if(_eqb.fromAssign){ _eqb.fromAssign=false; setTimeout(function(){ openAssign(fid); setTimeout(function(){ asgnSetScope('area'); document.getElementById('asgn-area-sel').value=_newTa.id; asgnUpdateAcresPreview(fid); },60); },250); }
+      else fdToast('Custom area "'+nm+'" added ('+pAc.toFixed(1)+' ac) — pick it under ＋ Program → Custom Area','success');
     } else if(tgt==='newp'){
       pushUndo('Add planting from file');
       var n=getPlantings(fid,season).length;
@@ -2947,6 +3056,391 @@ function _carveFromSiblings(p){
   });
 }
 
+// ════════════════════════════════════════════════════════════════════
+//  v42: MAP LAYERS (Fields / Plantings / Applications) + BULK RECORDS
+// ════════════════════════════════════════════════════════════════════
+var APP_CATS=[
+  {id:'seed',  label:'Seeding',          ico:'🌱', color:'#2FA36B'},
+  {id:'spray', label:'Spraying',         ico:'💨', color:'#3B82F6'},
+  {id:'dry',   label:'Dry Fertilizer',   ico:'🧪', color:'#D08A2C'},
+  {id:'liquid',label:'Liquid Fertilizer',ico:'💧', color:'#9B5CF6'},
+  {id:'other', label:'Other',            ico:'📋', color:'#9A9A9A'}];
+function _isLiquidUnit(u){ u=(u||'').toLowerCase(); return /gal|fl oz|qt|pt/.test(u); }
+function progCategory(pr){
+  if(!pr) return 'other';
+  var t=pr.type||'';
+  if(t==='seed'||t==='seed-corn'||t==='seed-soy') return 'seed';
+  if(t==='herbicide'||t==='fungicide'||t==='insecticide'||t==='pgr'||t==='chemical') return 'spray';
+  if(t==='fert-liquid') return 'liquid';
+  if(t.indexOf('fert')===0||t==='fertilizer'){
+    var ings=(pr.ingredients||[]).filter(function(i){return i.rate||i.unit;});
+    if(ings.length&&ings.every(function(i){return _isLiquidUnit(i.unit);})) return 'liquid';
+    return 'dry';
+  }
+  return 'other';
+}
+function appCat(id){ return APP_CATS.find(function(c){return c.id===id;})||APP_CATS[4]; }
+var _APP_PALETTE=['#4363D8','#F58231','#3CB44B','#911EB4','#42D4F4','#F032E6','#BFEF45','#469990','#DCBEFF','#9A6324','#FFD8B1','#AAFFC3','#808000','#FABED4','#000075','#FFFAC8'];
+function _progColor(pid,idx){ return _APP_PALETTE[idx%_APP_PALETTE.length]; }
+
+// Map layer state (remembered per browser)
+var mapLayerMode='plantings';
+var mapAppFilter={cat:'all',status:'all',prog:''};
+try{ var _ml=localStorage.getItem('fd_mapLayer'); if(_ml) mapLayerMode=_ml; var _mf=JSON.parse(localStorage.getItem('fd_mapAppFilter')||'null'); if(_mf) mapAppFilter=Object.assign(mapAppFilter,_mf); }catch(e){}
+function _saveMapPrefs(){ try{ localStorage.setItem('fd_mapLayer',mapLayerMode); localStorage.setItem('fd_mapAppFilter',JSON.stringify(mapAppFilter)); }catch(e){} }
+function setMapLayer(m){
+  mapLayerMode=m; _saveMapPrefs();
+  document.querySelectorAll('#mapLayerSeg button').forEach(function(b){b.classList.toggle('on',b.dataset.l===m);});
+  renderMapFields();
+}
+function setMapAppFilter(k,v){
+  mapAppFilter[k]=v;
+  if(k==='cat') mapAppFilter.prog='';
+  _saveMapPrefs(); renderMapFields();
+}
+
+// Where an application record lands on the map
+function fpCoverage(fp,f){
+  f=f||S.fields.find(function(x){return x.id===fp.fieldId;});
+  var fg=f?fGeom(f.id,fp.season):null;
+  if(fp.treatmentAreaId){
+    var ta=(S.treatmentAreas||[]).find(function(a){return a.id===fp.treatmentAreaId;});
+    if(ta&&ta.geom) return {geom:ta.geom,exact:true,label:'Area: '+ta.name};
+  }
+  if(fp.plantingIds&&fp.plantingIds.length){
+    var ps=fp.plantingIds.map(function(id){return S.plantings.find(function(p){return p.id===id;});}).filter(Boolean);
+    var lbl=ps.map(function(p){return p.crop||p.name||'planting';}).join(' + ');
+    if(ps.length&&ps.every(function(p){return p.geom;})){
+      if(!fp._covCache||fp._covCache.k!==ps.map(function(p){return p.id+':'+p.acres;}).join('|')){
+        var g=ps.length===1?ps[0].geom:_normGeom(_unionAll(ps.map(function(p){return p.geom;})));
+        Object.defineProperty(fp,'_covCache',{value:{k:ps.map(function(p){return p.id+':'+p.acres;}).join('|'),g:g},writable:true,configurable:true,enumerable:false});
+      }
+      return {geom:fp._covCache.g,exact:true,label:lbl};
+    }
+    return {geom:fg,exact:false,label:lbl+' (no planting shape)'};
+  }
+  if(fp.customAcres!=null&&fp.customAcres!=='') return {geom:fg,exact:false,label:'Custom '+_fmtN(fp.customAcres,1)+' ac (no shape)'};
+  return {geom:fg,exact:true,label:'Whole field'};
+}
+function _fpMatchesFilter(fp,pr){
+  if(!pr) return false;
+  if(mapAppFilter.cat!=='all'&&progCategory(pr)!==mapAppFilter.cat) return false;
+  if(mapAppFilter.prog&&fp.programId!==mapAppFilter.prog) return false;
+  var st=fp.status==='applied'?'applied':'planned';
+  if(mapAppFilter.status!=='all'&&st!==mapAppFilter.status) return false;
+  return true;
+}
+// Called by renderMapFields for each visible field in Applications mode
+var _appLegend=null;
+function _drawFieldApplications(f,clickFn){
+  var fps=S.fieldProgs.filter(function(fp){return fp.fieldId===f.id&&fp.season===S.curSeason;});
+  var shown=[];
+  fps.forEach(function(fp){ var pr=S.programs.find(function(p){return p.id===fp.programId;}); if(_fpMatchesFilter(fp,pr)) shown.push({fp:fp,pr:pr}); });
+  _appLegend.fieldsVisible.push(f.id);
+  if(!shown.length){ _appLegend.missing.push(f.id); return false; }
+  // planned underneath, applied on top
+  shown.sort(function(a,b){return (a.fp.status==='applied'?1:0)-(b.fp.status==='applied'?1:0);});
+  shown.forEach(function(x){
+    var fp=x.fp, pr=x.pr;
+    var leg=_appLegend.progs[pr.id];
+    if(!leg){ leg=_appLegend.progs[pr.id]={pr:pr,applied:0,planned:0,fields:{},color:null}; _appLegend.order.push(pr.id); }
+    var ac=acresForFP(f,fp);
+    if(fp.status==='applied') leg.applied+=ac; else leg.planned+=ac;
+    leg.fields[f.id]=1;
+    var cov=fpCoverage(fp,f); if(!cov.geom) return;
+    _appLegend.pending.push({f:f,fp:fp,pr:pr,cov:cov,ac:ac,click:clickFn});
+  });
+  return true;
+}
+function _flushAppLayers(){
+  var L_=_appLegend;
+  // stable colours: by program name
+  L_.order.sort(function(a,b){return (L_.progs[a].pr.name||'').localeCompare(L_.progs[b].pr.name||'');});
+  L_.order.forEach(function(pid,i){ L_.progs[pid].color=L_.order.length===1?appCat(progCategory(L_.progs[pid].pr)).color:_progColor(pid,i); });
+  L_.pending.forEach(function(x){
+    var col=L_.progs[x.pr.id].color, applied=x.fp.status==='applied';
+    var sty={color:col,fillColor:col,weight:applied?2:2,opacity:.95,fillOpacity:applied?(x.cov.exact?.5:.28):.13,dashArray:applied?(x.cov.exact?null:'2,5'):'7,6'};
+    var lyr=L.geoJSON(x.cov.geom,{style:sty});
+    var cat=appCat(progCategory(x.pr));
+    lyr.bindTooltip('<b>'+esc(x.f.name)+'</b><br>'+cat.ico+' '+esc(x.pr.name)+'<br>'+(applied?'✓ Applied'+(x.fp.appliedDate?' '+x.fp.appliedDate:''):'📋 Planned')+' · '+x.ac.toFixed(1)+' ac<br><small>'+esc(x.cov.label)+'</small>',{sticky:true});
+    lyr.on('click',function(e){ L.DomEvent.stopPropagation(e); x.click(e); });
+    zoneLayerGroup.addLayer(lyr);
+  });
+  _renderAppCtl();
+}
+function _renderAppCtl(){
+  var el=document.getElementById('mapAppCtl'); if(!el) return;
+  if(mapLayerMode!=='apps'){ el.style.display='none'; return; }
+  el.style.display='';
+  var L_=_appLegend||{order:[],progs:{},missing:[],fieldsVisible:[]};
+  // programs available in this category this season (for the dropdown)
+  var seasonProgIds=[...new Set(S.fieldProgs.filter(function(fp){return fp.season===S.curSeason;}).map(function(fp){return fp.programId;}))];
+  var progOpts=seasonProgIds.map(function(id){return S.programs.find(function(p){return p.id===id;});}).filter(function(p){return p&&(mapAppFilter.cat==='all'||progCategory(p)===mapAppFilter.cat);}).sort(function(a,b){return a.name.localeCompare(b.name);});
+  var h='<div class="mac-h"><span>Applications — '+S.curSeason+'</span><span style="cursor:pointer" title="Hide" onclick="setMapLayer(\'plantings\')">✕</span></div>';
+  h+='<div class="mac-chips"><span class="mac-chip'+(mapAppFilter.cat==='all'?' on':'')+'" onclick="setMapAppFilter(\'cat\',\'all\')">All</span>'
+    +APP_CATS.map(function(c){return '<span class="mac-chip'+(mapAppFilter.cat===c.id?' on':'')+'" onclick="setMapAppFilter(\'cat\',\''+c.id+'\')">'+c.ico+' '+c.label+'</span>';}).join('')+'</div>';
+  h+='<div style="display:flex;gap:6px;padding:0 10px 8px">'
+    +'<select onchange="setMapAppFilter(\'status\',this.value)"><option value="all"'+(mapAppFilter.status==='all'?' selected':'')+'>Planned + Applied</option><option value="applied"'+(mapAppFilter.status==='applied'?' selected':'')+'>Applied only</option><option value="planned"'+(mapAppFilter.status==='planned'?' selected':'')+'>Planned only</option></select>'
+    +'<select style="flex:1;min-width:0" onchange="setMapAppFilter(\'prog\',this.value)"><option value="">All programs</option>'+progOpts.map(function(p){return '<option value="'+p.id+'"'+(mapAppFilter.prog===p.id?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select></div>';
+  var totA=0,totP=0;
+  L_.order.forEach(function(pid){
+    var x=L_.progs[pid]; totA+=x.applied; totP+=x.planned;
+    var n=Object.keys(x.fields).length;
+    h+='<div class="mac-row'+(mapAppFilter.prog===pid?' on':'')+'" onclick="setMapAppFilter(\'prog\',\''+(mapAppFilter.prog===pid?'':pid)+'\')" title="Click to show only this program">'
+      +'<span class="mac-sw" style="background:'+x.color+'"></span><span class="mac-n">'+appCat(progCategory(x.pr)).ico+' '+esc(x.pr.name)+'</span>'
+      +'<span class="mac-ac">'+n+' fld · <span style="color:#9fe39f">'+x.applied.toFixed(0)+'</span>/<span style="color:#f0c060">'+x.planned.toFixed(0)+'</span> ac</span></div>';
+  });
+  if(!L_.order.length) h+='<div style="padding:8px 10px;color:rgba(255,255,255,.55)">No records match on the fields shown.</div>';
+  h+='<div style="padding:6px 10px;border-top:1px solid rgba(255,255,255,.1);font-size:10.5px;color:rgba(255,255,255,.6)">'
+    +'<span style="color:#9fe39f">■ applied '+totA.toFixed(0)+' ac</span> &nbsp; <span style="color:#f0c060">▢ planned '+totP.toFixed(0)+' ac</span>'
+    +(L_.missing.length?' &nbsp; <span>⬚ '+L_.missing.length+' field'+(L_.missing.length>1?'s':'')+' with none (dark, dotted)</span>':'')+'<br>Solid = applied · dashed = planned · dotted = acres only (no shape)</div>';
+  h+='<div class="mac-acts">'
+    +(L_.missing.length?'<button onclick="mapSelectAppSet(\'missing\')" title="Select the fields that don\'t have a matching record yet">☑ Select '+L_.missing.length+' without</button>':'')
+    +'<button onclick="mapSelectAppSet(\'planned\')" title="Select fields that have matching planned records">☑ Select planned</button>'
+    +'<button onclick="mapSelectAppSet(\'applied\')">☑ Select applied</button>'
+    +'</div>';
+  el.innerHTML=h;
+}
+function mapSelectAppSet(kind){
+  var L_=_appLegend; if(!L_) return;
+  var ids=[];
+  if(kind==='missing') ids=L_.missing.slice();
+  else ids=L_.fieldsVisible.filter(function(fid){
+    return S.fieldProgs.some(function(fp){ if(fp.fieldId!==fid||fp.season!==S.curSeason) return false; var pr=S.programs.find(function(p){return p.id===fp.programId;});
+      if(!pr) return false; if(mapAppFilter.cat!=='all'&&progCategory(pr)!==mapAppFilter.cat) return false; if(mapAppFilter.prog&&fp.programId!==mapAppFilter.prog) return false;
+      return (fp.status==='applied'?'applied':'planned')===kind; });
+  });
+  mapSelectedFids.clear(); ids.forEach(function(id){mapSelectedFids.add(id);});
+  updateSelectBadge(); renderMapFields();
+  fdToast(ids.length+' field'+(ids.length!==1?'s':'')+' selected');
+}
+var _lastRenderedFids=[];
+function mapSelectVisible(){
+  if(!_lastRenderedFids.length){ fdToast('No fields shown on the map'); return; }
+  var allSel=_lastRenderedFids.every(function(id){return mapSelectedFids.has(id);});
+  if(allSel){ mapSelectedFids.clear(); }
+  else _lastRenderedFids.forEach(function(id){mapSelectedFids.add(id);});
+  updateSelectBadge(); renderMapFields();
+  if(!allSel) fdToast(mapSelectedFids.size+' fields selected — use ＋ Program / Record');
+}
+function mapClearSelection(){ mapSelectedFids.clear(); selectedRows.clear&&selectedRows.clear(); updateSelectBadge(); if(typeof updateBulkBar==='function') updateBulkBar(); renderMapFields(); }
+
+// ── Mark applied in bulk ────────────────────────────────────────────
+function bulkMarkApplied(){
+  var fids=[...mapSelectedFids]; if(!fids.length){ fdToast('Select fields first'); return; }
+  var fps=S.fieldProgs.filter(function(fp){
+    if(fids.indexOf(fp.fieldId)<0||fp.season!==S.curSeason||fp.status==='applied') return false;
+    if(mapLayerMode==='apps'){ var pr=S.programs.find(function(p){return p.id===fp.programId;}); if(!pr) return false;
+      if(mapAppFilter.cat!=='all'&&progCategory(pr)!==mapAppFilter.cat) return false; if(mapAppFilter.prog&&fp.programId!==mapAppFilter.prog) return false; }
+    return true;
+  });
+  if(!fps.length){ fdToast('No planned records on the selected fields'+(mapLayerMode==='apps'?' (matching the layer filter)':'')); return; }
+  var byProg={}; fps.forEach(function(fp){ var pr=S.programs.find(function(p){return p.id===fp.programId;}); var k=pr?pr.name:'?'; byProg[k]=(byProg[k]||0)+1; });
+  var d=prompt('Mark '+fps.length+' planned record'+(fps.length>1?'s':'')+' as APPLIED:\n\n'+Object.keys(byProg).map(function(k){return '• '+k+' ('+byProg[k]+')';}).join('\n')+'\n\nDate applied (YYYY-MM-DD):',new Date().toISOString().slice(0,10));
+  if(d===null) return;
+  pushUndo('Mark applied ('+fps.length+')');
+  fps.forEach(function(fp){ fp.status='applied'; fp.appliedDate=d||new Date().toISOString().slice(0,10); });
+  save(); renderMapFields(); renderPlan(); renderPrograms(); if(curFid){ renderFieldDetail(curFid); if(!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(curFid); }
+  fdToast('✓ '+fps.length+' record'+(fps.length>1?'s':'')+' marked applied','success');
+}
+
+// ── Bulk add program / record ("reverse add") ───────────────────────
+var _br={fids:[],src:'existing'};
+function openBulkRecord(fids){
+  fids=(fids&&fids.length?fids:[...mapSelectedFids]).filter(function(id){return S.fields.find(function(f){return f.id===id;});});
+  if(!fids.length){ fdToast('Select fields first — shift-click on the map, ☑ All Visible, or tick rows in Crop Plan','error'); return; }
+  _br.fids=fids;
+  var gids=[...new Set(fids.map(function(id){return (S.fields.find(function(f){return f.id===id;})||{}).growerId;}))];
+  _br.gid=gids.length===1?gids[0]:null;
+  // category filter + defaults from the map layer filter
+  var cs=document.getElementById('br-cat');
+  cs.innerHTML='<option value="all">All types</option>'+APP_CATS.map(function(c){return '<option value="'+c.id+'">'+c.ico+' '+c.label+'</option>';}).join('');
+  cs.value=(mapLayerMode==='apps'&&mapAppFilter.cat!=='all')?mapAppFilter.cat:'all';
+  document.getElementById('br-search').value='';
+  // crop list: crops present on selected fields
+  var crops=[...new Set(fids.flatMap(function(id){return getFieldCrops(id);}))].sort();
+  var cropSel=document.getElementById('br-crop');
+  cropSel.innerHTML=(crops.length?crops:CROPS).map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
+  var fc=(typeof cropFilter!=='undefined'&&cropFilter!=='all')?cropFilter:((mapDisplayFilter&&mapDisplayFilter.type==='crop')?mapDisplayFilter.crop:'');
+  document.getElementById('br-cov').value=fc&&crops.indexOf(fc)>=0?'crop':'field';
+  if(fc&&crops.indexOf(fc)>=0) cropSel.value=fc;
+  document.getElementById('br-status').value='planned';
+  document.getElementById('br-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('br-notes').value='';
+  // new-program form
+  document.getElementById('br-n').value=''; document.getElementById('br-tm').value='';
+  document.querySelector('#br-ing tbody').innerHTML=''; brAddIng(); brAddIng();
+  var ow=document.getElementById('br-owner');
+  ow.innerHTML=(_br.gid?'<option value="'+_br.gid+'">👤 '+esc((S.growers.find(function(g){return g.id===_br.gid;})||{}).name||'Grower')+' (grower program)</option>':'')+'<option value="">📚 General Library</option>';
+  var dl=document.getElementById('br-prod-list');
+  if(!dl.childElementCount) dl.innerHTML=S.products.map(function(p){return '<option value="'+esc(p.name)+'">';}).join('');
+  brSetSrc(_br.src||'existing');
+  openM('bulkrec');
+}
+function brSetSrc(v){
+  _br.src=v;
+  document.querySelectorAll('#br-src-seg button').forEach(function(b){b.classList.toggle('on',b.dataset.v===v);});
+  document.getElementById('br-existing').style.display=v==='existing'?'':'none';
+  document.getElementById('br-new').style.display=v==='new'?'':'none';
+  if(v==='existing') brFillProgs();
+  brRefresh();
+}
+function brFillProgs(){
+  var q=(document.getElementById('br-search').value||'').toLowerCase().trim();
+  var cat=document.getElementById('br-cat').value;
+  var sel=document.getElementById('br-prog'); var keep=sel.value;
+  var progs=S.programs.filter(function(p){
+    if(p.season&&p.season!==S.curSeason) return false;
+    if(cat!=='all'&&progCategory(p)!==cat) return false;
+    if(q&&(p.name||'').toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  var mine=progs.filter(function(p){return _br.gid&&p.growerId===_br.gid;}), gen=progs.filter(function(p){return !p.growerId;}), oth=progs.filter(function(p){return p.growerId&&p.growerId!==_br.gid;});
+  var grp=function(lbl,arr){ if(!arr.length) return ''; arr.sort(function(a,b){return a.name.localeCompare(b.name);}); return '<optgroup label="'+esc(lbl)+'">'+arr.map(function(p){return '<option value="'+p.id+'">'+appCat(progCategory(p)).ico+' '+esc(p.name)+(p.timing?' · '+esc(p.timing):'')+'</option>';}).join('')+'</optgroup>'; };
+  var gname=_br.gid?((S.growers.find(function(g){return g.id===_br.gid;})||{}).name||'Grower'):'';
+  sel.innerHTML=grp(gname?gname+"'s programs":'Grower programs',mine)+grp('General Library',gen)+grp('Other growers',oth);
+  if(keep&&[...sel.options].some(function(o){return o.value===keep;})) sel.value=keep;
+  else if(sel.options.length) sel.selectedIndex=0;
+  brRefresh();
+}
+function brAddIng(){
+  var tb=document.querySelector('#br-ing tbody');
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td><input class="fc br-ip" list="br-prod-list" placeholder="Type product…" style="font-size:12px"></td>'
+    +'<td><input class="fc br-ir" type="number" step="0.01" placeholder="0" style="font-size:12px"></td>'
+    +'<td><select class="fc br-iu" style="font-size:11.5px"><option>lb/ac</option><option>gal/ac</option><option>fl oz/ac</option><option>oz/ac</option><option>pt/ac</option><option>qt/ac</option><option>K seeds/ac</option><option>seeds/ac</option><option>units/ac</option></select></td>'
+    +'<td><button class="btn btn-xs btn-gh" onclick="this.closest(\'tr\').remove()">✕</button></td>';
+  tb.appendChild(tr);
+  var t=document.getElementById('br-t').value;
+  var u=tr.querySelector('.br-iu');
+  u.value=t==='fert-liquid'?'gal/ac':(t==='herbicide'||t==='fungicide'||t==='insecticide'||t==='pgr')?'fl oz/ac':t==='seed'?'K seeds/ac':'lb/ac';
+  tr.querySelector('.br-ip').addEventListener('change',function(){ var p=S.products.find(function(x){return x.name===this.value;}.bind(this)); if(p&&p.unit){ var opt=[...u.options].find(function(o){return o.value===p.unit;}); if(opt) u.value=p.unit; } });
+}
+function _brProgram(){
+  if(_br.src==='existing'){ var id=document.getElementById('br-prog').value; return id?S.programs.find(function(p){return p.id===id;}):null; }
+  return null;
+}
+function _brCoverFor(fid){
+  var cov=document.getElementById('br-cov').value, crop=document.getElementById('br-crop').value;
+  var f=S.fields.find(function(x){return x.id===fid;});
+  if(cov==='crop'){
+    var ps=getPlantings(fid).filter(function(p){return p.crop===crop;});
+    if(ps.length) return {plantingIds:ps.map(function(p){return p.id;}),acres:ps.reduce(function(s,p){return s+(+p.acres||0);},0),note:''};
+    if(getFieldCrops(fid).length===1&&getFieldCrops(fid)[0]===crop) return {plantingIds:null,acres:fAc(f),note:'whole field'};
+    return {skip:true,acres:0,note:'no '+crop};
+  }
+  return {plantingIds:null,acres:fAc(f),note:''};
+}
+function brRefresh(){
+  var cov=document.getElementById('br-cov').value;
+  document.getElementById('br-crop-wrap').style.display=cov==='crop'?'':'none';
+  document.getElementById('br-date-wrap').style.visibility=document.getElementById('br-status').value==='applied'?'visible':'hidden';
+  var pr=_brProgram();
+  var progId=pr?pr.id:null;
+  var tb=document.getElementById('br-fields');
+  var prevChecked={}, prevAc={};
+  tb.querySelectorAll('tr').forEach(function(tr){ var cb=tr.querySelector('.br-fcb'); if(cb) prevChecked[cb.value]=cb.checked; var ai=tr.querySelector('.br-fac'); if(ai) prevAc[ai.dataset.fid]=ai.value; });
+  tb.innerHTML=_br.fids.map(function(fid){
+    var f=S.fields.find(function(x){return x.id===fid;}); var g=S.growers.find(function(x){return x.id===f.growerId;});
+    var c=_brCoverFor(fid);
+    var dup=progId&&S.fieldProgs.some(function(fp){return fp.fieldId===fid&&fp.programId===progId&&fp.season===S.curSeason;});
+    var checked=c.skip?false:(prevChecked[fid]!==undefined?prevChecked[fid]:!dup);
+    var acCell=cov==='acres'?'<input class="ac-edit br-fac" data-fid="'+fid+'" type="number" step="0.1" min="0" value="'+(prevAc[fid]!==undefined?prevAc[fid]:fAc(f).toFixed(1))+'" oninput="brTotals()">':'<span class="br-acv" data-fid="'+fid+'" style="font-family:IBM Plex Mono,monospace">'+c.acres.toFixed(1)+'</span>';
+    var note=c.skip?'<span style="color:var(--muted)">'+esc(c.note)+'</span>':dup?'<span style="color:var(--gold)" title="This field already has this program this season">already has it</span>':(c.note?'<span style="color:var(--muted)">'+esc(c.note)+'</span>':'');
+    return '<tr><td><input type="checkbox" class="br-fcb" value="'+fid+'"'+(checked?' checked':'')+(c.skip?' disabled':'')+' onchange="brTotals()"></td><td><strong>'+esc(f.name)+'</strong></td><td style="color:var(--muted)">'+esc(g?g.name:'')+'</td><td>'+esc(fieldCropLabel(fid)||'—')+'</td><td style="text-align:right">'+acCell+'</td><td style="font-size:10.5px">'+note+'</td></tr>';
+  }).join('');
+  brTotals();
+}
+function brTotals(){
+  var cov=document.getElementById('br-cov').value; var n=0, ac=0;
+  document.querySelectorAll('.br-fcb').forEach(function(cb){
+    if(!cb.checked) return; n++;
+    if(cov==='acres'){ var i=document.querySelector('.br-fac[data-fid="'+cb.value+'"]'); ac+=parseFloat(i&&i.value)||0; }
+    else { var v=document.querySelector('.br-acv[data-fid="'+cb.value+'"]'); ac+=parseFloat(v&&v.textContent)||0; }
+  });
+  var st=document.getElementById('br-status').value;
+  document.getElementById('br-sum').innerHTML='<strong>'+n+'</strong> field'+(n!==1?'s':'')+' · <strong>'+ac.toFixed(1)+'</strong> ac · '+(st==='applied'?'✓ Applied':'📋 Planned');
+  document.getElementById('br-go').textContent='Add to '+n+' field'+(n!==1?'s':'');
+  document.getElementById('br-title').textContent='Add Program / Record — '+_br.fids.length+' field'+(_br.fids.length!==1?'s':'')+' selected';
+}
+function confirmBulkRecord(){
+  var pr=_brProgram();
+  if(_br.src==='new'){
+    var name=document.getElementById('br-n').value.trim();
+    var ings=[];
+    document.querySelectorAll('#br-ing tbody tr').forEach(function(tr){
+      var nm=tr.querySelector('.br-ip').value.trim(), rate=tr.querySelector('.br-ir').value, unit=tr.querySelector('.br-iu').value;
+      if(!nm&&!rate) return;
+      var p=S.products.find(function(x){return x.name.toLowerCase()===nm.toLowerCase();});
+      ings.push({productId:p?p.id:'',product:p?p.name:nm,rate:rate,unit:unit,timing:'',cu:''});
+    });
+    if(!name){ name=ings.map(function(i){return (i.rate||'')+(i.product||'');}).join('+')||''; }
+    if(!name){ alert('Give the program a name or at least one product.'); return; }
+    pr={id:uid(),name:name,type:document.getElementById('br-t').value,timing:document.getElementById('br-tm').value,placement:'',season:S.curSeason,growerId:document.getElementById('br-owner').value||null,crops:[],ingredients:ings,notes:''};
+  }
+  if(!pr){ alert('Pick a program.'); return; }
+  var cov=document.getElementById('br-cov').value, st=document.getElementById('br-status').value, d=document.getElementById('br-date').value, notes=document.getElementById('br-notes').value;
+  var chosen=[...document.querySelectorAll('.br-fcb:checked')].map(function(cb){return cb.value;});
+  if(!chosen.length){ alert('No fields ticked.'); return; }
+  pushUndo('Add '+pr.name+' to '+chosen.length+' fields');
+  if(_br.src==='new') S.programs.push(pr);
+  var made=0;
+  chosen.forEach(function(fid){
+    var c=_brCoverFor(fid); if(c.skip) return;
+    var rec={id:uid(),fieldId:fid,programId:pr.id,season:S.curSeason,notes:notes,plantingIds:c.plantingIds,treatmentAreaId:null,cropZoneId:null,vrtRates:{},status:st};
+    if(st==='applied') rec.appliedDate=d||new Date().toISOString().slice(0,10);
+    if(cov==='acres'){ var i=document.querySelector('.br-fac[data-fid="'+fid+'"]'); var v=parseFloat(i&&i.value); var f=S.fields.find(function(x){return x.id===fid;}); if(!isNaN(v)&&Math.abs(v-fAc(f))>=0.05) rec.customAcres=_r1(v); }
+    S.fieldProgs.push(rec); made++;
+  });
+  save(); closeM('bulkrec');
+  renderPlan(); renderPrograms(); renderMapFields(); if(curFid){ renderFieldDetail(curFid); if(!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(curFid); }
+  fdToast((st==='applied'?'✓ Applied ':'📋 Planned ')+pr.name+' on '+made+' field'+(made!==1?'s':''),'success');
+  // Jump the Applications layer to what was just added so it's visible
+  if(document.getElementById('view-map')&&document.getElementById('view-map').classList.contains('on')){
+    mapAppFilter.cat=progCategory(pr); mapAppFilter.prog=pr.id; mapAppFilter.status='all'; setMapLayer('apps');
+  }
+}
+
+// ── Map panel: applications on this field ────────────────────────────
+function _mpApplicationsSection(f){
+  var fid=f.id, ro=isSeasonLocked(S.curSeason);
+  var fps=S.fieldProgs.filter(function(fp){return fp.fieldId===fid&&fp.season===S.curSeason;});
+  var h='<div class="mp-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="mp-lbl">Applications — '+S.curSeason+(ro?' 🔒':'')+'</span>'
+    +(ro?'':'<button class="btn btn-og btn-sm" onclick="openAssign(\''+fid+'\')">＋ Add</button>')+'</div>';
+  if(!fps.length) h+='<div style="font-size:11.5px;color:var(--muted)">No programs or records yet.</div>';
+  APP_CATS.forEach(function(c){
+    var list=fps.filter(function(fp){var pr=S.programs.find(function(p){return p.id===fp.programId;});return pr&&progCategory(pr)===c.id;});
+    if(!list.length) return;
+    h+='<div style="font-size:10px;color:var(--muted);margin:6px 0 3px">'+c.ico+' '+c.label+'</div>';
+    list.forEach(function(fp){
+      var pr=S.programs.find(function(p){return p.id===fp.programId;}); var cov=fpCoverage(fp,f); var ac=acresForFP(f,fp); var done=fp.status==='applied';
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 7px;margin-bottom:3px;border:1px solid var(--rule);border-left:3px solid '+c.color+';border-radius:var(--r);background:var(--fog)">'
+        +'<div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(pr.name)+'">'+esc(pr.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--muted)">'+esc(cov.label)+' · '+ac.toFixed(1)+' ac'+(done&&fp.appliedDate?' · '+fp.appliedDate:'')+'</div></div>'
+        +(ro?'<span style="font-size:10px;color:'+(done?'var(--leaf)':'var(--muted)')+'">'+(done?'✓ Applied':'Planned')+'</span>'
+            :'<button class="btn btn-xs '+(done?'btn-g':'btn-gh')+'" onclick="toggleFPStatus(\''+fp.id+'\',\''+fid+'\')" title="Toggle planned / applied">'+(done?'✓ Applied':'📋 Planned')+'</button>'
+             +'<button class="btn btn-xs btn-gh" onclick="openAssign(\''+fid+'\',null,\''+fp.id+'\')" title="Edit coverage, status, date">✎</button>')
+        +'</div>';
+    });
+  });
+  h+='</div>';
+  return h;
+}
+// Make a custom area from a planting shape (this season or last) — e.g. last year's soybean corner
+function asgnAreaFromPlantings(){
+  var fid=document.getElementById('asgn-fid').value;
+  var cand=S.plantings.filter(function(p){return p.fieldId===fid&&p.geom&&(_seasonNum(p.season)===_seasonNum(S.curSeason)||_seasonNum(p.season)===_seasonNum(S.curSeason)-1);});
+  if(!cand.length){ alert('No planting shapes on this field for '+S.curSeason+' or '+(_seasonNum(S.curSeason)-1)+'.'); return; }
+  var pick=prompt('Make a custom area from which planting shape?\n\n'+cand.map(function(p,i){return (i+1)+') '+p.season+' '+(p.crop||p.name||'planting')+' — '+_fmtN(p.acres,1)+' ac';}).join('\n')+'\n\nEnter a number:','1');
+  var p=cand[(parseInt(pick,10)||0)-1]; if(!p) return;
+  S.treatmentAreas=S.treatmentAreas||[];
+  var ta={id:uid(),fieldId:fid,season:S.curSeason,name:p.season+' '+(p.crop||p.name||'planting')+' area',acres:_r1(p.acres||acresFromGeojson(_feat(p.geom))),geom:_clone(p.geom),color:'#9060CC',notes:'From '+p.season+' planting'};
+  S.treatmentAreas.push(ta); save();
+  var aSel=document.getElementById('asgn-area-sel');
+  aSel.insertAdjacentHTML('beforeend','<option value="'+ta.id+'">'+esc(ta.name)+' ('+ta.acres+' ac)</option>');
+  aSel.value=ta.id; asgnUpdateAcresPreview(fid);
+}
+
 function getFieldCrop(fid,season){
   var s=season||S.curSeason;
   var ps=(S.plantings||[]).filter(function(p){return p.fieldId===fid&&p.season===s&&p.crop;});
@@ -2989,8 +3483,8 @@ function fieldCropAcres(fid,crop,season){
 function totalAc(arr){ return arr.reduce((s,f)=>s+(+fAc(f)||0),0); }
 function cropColor(c){ const m={Corn:'#D0B018',Soybeans:'#50A020',Wheat:'#C08028','Spring Wheat':'#C08028',Canola:'#7060CC',Sunflower:'#E09C18',Sugarbeet:'#D83858',Barley:'#B08030',Flax:'#9060CC',Fallow:'#C8B898',Other:'#888888',Unknown:'#999999',Unassigned:'#BBBBBB'}; return m[c]||'#7AB858'; }
 function cropClass(c){ const m={Corn:'cb-Corn',Soybeans:'cb-Soybeans',Wheat:'cb-Wheat','Spring Wheat':'cb-SpringWheat',Canola:'cb-Canola',Sunflower:'cb-Sunflower',Sugarbeet:'cb-Sugarbeet',Barley:'cb-Barley',Flax:'cb-Flax',Other:'cb-Other',Fallow:'cb-Fallow',Unknown:'cb-Other',Unassigned:'cb-none'}; return m[c]||'cb-Other'; }
-function typeIco(t){ return {herbicide:'🌿',fungicide:'🍄',insecticide:'🐛',fertilizer:'🧪','fert-fall':'🍂','fert-spring':'🌱',chemical:'🧪','fert-blend':'🧪','fert-product':'🪣',seed:'🌾',pgr:'🔬',other:'📋'}[t]||'📋'; }
-function typeColor(t){ return {herbicide:'#E0F5D0',fungicide:'#CCE8F8',insecticide:'#F8ECC8',fertilizer:'#E8DCF8','fert-fall':'#FFF0D8','fert-spring':'#E0F8E8',chemical:'#F0E8FF','fert-blend':'#E8DCF8','fert-product':'#E8DCF8',seed:'#D4F8E4',pgr:'#F8E4D0',other:'#EEEEEA'}[t]||'#EEE'; }
+function typeIco(t){ return {'fert-liquid':'💧',herbicide:'🌿',fungicide:'🍄',insecticide:'🐛',fertilizer:'🧪','fert-fall':'🍂','fert-spring':'🌱',chemical:'🧪','fert-blend':'🧪','fert-product':'🪣',seed:'🌾',pgr:'🔬',other:'📋'}[t]||'📋'; }
+function typeColor(t){ return {'fert-liquid':'#E4DCFF',herbicide:'#E0F5D0',fungicide:'#CCE8F8',insecticide:'#F8ECC8',fertilizer:'#E8DCF8','fert-fall':'#FFF0D8','fert-spring':'#E0F8E8',chemical:'#F0E8FF','fert-blend':'#E8DCF8','fert-product':'#E8DCF8',seed:'#D4F8E4',pgr:'#F8E4D0',other:'#EEEEEA'}[t]||'#EEE'; }
 
 // ════════════════════════════════════════
 //  INIT
@@ -4275,6 +4769,9 @@ function renderProgCard(fp,pr,fid){
           var _scopeLabel=_scopePlantings.map(function(p){return (p.crop||p.name||'planting')+' ('+_fmtN(p.acres,1)+' ac)';}).join(', ');
           return '<span onclick="event.stopPropagation();toggleFPScope(\''+fp.id+'\',\''+fid+'\')" style="cursor:pointer;font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(220,162,40,.12);border:1px solid rgba(220,162,40,.4);color:var(--wheat)" title="Click to switch to whole field · Currently: '+esc(_scopeLabel)+'">🔶 '+esc(_scopePlantings[0]?(_scopePlantings[0].crop||'planting'):'planting')+'</span>';
         }
+        if(fp.customAcres!=null&&fp.customAcres!==''){
+          return '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(80,120,200,.12);border:1px solid rgba(80,120,200,.4);color:var(--sky)" title="Custom acres — no map shape">✎ '+_fmtN(fp.customAcres,1)+' ac</span>';
+        }
         if(fp.treatmentAreaId){
           var _ta=(S.treatmentAreas||[]).find(function(x){return x.id===fp.treatmentAreaId;});
           return '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(144,96,204,.12);border:1px solid rgba(144,96,204,.4);color:#9060CC" title="Treatment area: '+esc(_ta?_ta.name:'?')+'">⛬ '+esc(_ta?_ta.name:'area')+'</span>';
@@ -4288,8 +4785,9 @@ function renderProgCard(fp,pr,fid){
         ${isVRT?`<button class="btn btn-a btn-xs" onclick="openVrtRates('${fp.id}','${fid}')" title="Set per-zone rates">&#x26A1; Zone Rates</button>`:''}
         ${(!(fp.plantingIds&&fp.plantingIds.length)&&!fp.treatmentAreaId&&getPlantings(fid,fp.season).filter(p=>(+p.acres||0)>0).length>1&&!isSeasonLocked(fp.season))?`<button class="btn btn-xs btn-gh" onclick="event.stopPropagation();splitFPByPlanting('${fp.id}','${fid}')" title="Make one record per planting so each can be marked applied on its own (e.g. soybean stubble spread now, corn stalks later)">⑂ Per Planting</button>`:''}
         <button class="btn btn-xs ${fp.status==='applied'?'btn-g':'btn-gh'}" onclick="event.stopPropagation();toggleFPStatus('${fp.id}','${fid}')" title="${fp.status==='applied'?'Mark as Planned':'Mark as Applied'}">
-          ${fp.status==='applied'?'✓ Applied':'📋 Planned'}
+          ${fp.status==='applied'?'✓ Applied'+(fp.appliedDate?' '+fp.appliedDate.slice(5):''):'📋 Planned'}
         </button>
+        <button class="btn btn-xs btn-gh" onclick="event.stopPropagation();openAssign('${fid}',null,'${fp.id}')" title="Edit coverage (whole field / plantings / area / acres), status and date">⛶ Coverage</button>
         <button class="btn btn-xs ${isLocked?'btn-og':'btn-gh'}" onclick="toggleLockFP('${fp.id}','${fid}')" title="${isLocked?'Unlock':'Lock'}">${isLocked?'🔓 Unlock':'🔒 Lock'}</button>
         <button class="btn btn-xs" style="background:rgba(80,160,60,.12);color:var(--leaf);border:1px solid rgba(80,160,60,.3)" onclick="event.stopPropagation();goToProgInLibrary('${pr.id}')" title="Open in Program Library">📚</button>
         <button class="btn btn-gh btn-xs" onclick="openProgModal('${pr.id}')">✏</button>
@@ -4977,6 +5475,10 @@ function renderMapFields(){
       fb.querySelector('.mfb-lbl').textContent='Showing: '+_lbl+' only';
     } else { fb.style.display='none'; }
   }
+  var _appsMode=mapLayerMode==='apps', _fieldsMode=mapLayerMode==='fields';
+  _lastRenderedFids=[];
+  if(_appsMode) _appLegend={progs:{},order:[],pending:[],missing:[],fieldsVisible:[]};
+  document.querySelectorAll('#mapLayerSeg button').forEach(function(b){b.classList.toggle('on',b.dataset.l===mapLayerMode);});
   S.fields.forEach(f=>{
     if(!fGeom(f.id)) return;
     // Apply display filter
@@ -4995,6 +5497,14 @@ function renderMapFields(){
       if(_cfps.length){if(!_cfps.some(function(p){return p.crop===cropFilter;})) return;}
       else{if(getFieldCrop(f.id,S.curSeason)!==cropFilter) return;}
     }
+    _lastRenderedFids.push(f.id);
+    const _onFieldClick=(e)=>{
+      L.DomEvent.stopPropagation(e);
+      if(e.originalEvent.shiftKey||mapSelectMode){ toggleMapSelect(f.id); return; }
+      if(mapSelectedFids.size>0){ toggleMapSelect(f.id); return; }
+      onMapFieldClick(f.id);
+    };
+    const _hasApp=_appsMode?_drawFieldApplications(f,_onFieldClick):false;
     const _fldCrops=getFieldCrops(f.id);
     const crop=_fldCrops.length===1?_fldCrops[0]:'';
     // When a crop filter is active, the field colors as the filter crop. When no filter and field has a single crop, color as that. When no filter and multiple crops with no planting geoms, color neutral.
@@ -5010,7 +5520,7 @@ function renderMapFields(){
     const weight=isFocusField?3:isSelected?3:isEditTarget?1:2;
     const dashArray=isSelected?null:isEditTarget?'4,4':'';
     // Reduce field fill when plantings have their own boundaries
-    const _hasPlantingGeoms=S.plantings.some(function(p){return p.fieldId===f.id&&p.season===S.curSeason&&p.geom&&(p.geom.coordinates||(p.geom.geometry&&p.geom.geometry.coordinates));});
+    const _hasPlantingGeoms=mapLayerMode==='plantings'&&S.plantings.some(function(p){return p.fieldId===f.id&&p.season===S.curSeason&&p.geom&&(p.geom.coordinates||(p.geom.geometry&&p.geom.geometry.coordinates));});
     const _filteringByCrop=cropFilter!=='all'||(mapDisplayFilter&&mapDisplayFilter.type==='crop');
     // When the field has planting polygons, the planting polygons should be the only crop-colored elements. Draw the field outline in a neutral color and hide the field fill so the plantings speak for themselves. Special states (selected/focus/edit/dimmed) keep their own colors.
     const _hasSpecialState=isSelected||isFocusField||isDimmed||isEditTarget;
@@ -5018,21 +5528,15 @@ function renderMapFields(){
     const fieldFillColor=(_hasPlantingGeoms&&!_hasSpecialState&&!_filterCrop)?'#FFFFFF':(isDimmed||isEditTarget?'#333':baseColor);
     const fillOpacity=isDimmed?.08:isEditTarget?.04:isSelected?.55:_hasPlantingGeoms?0:.35;
     const fieldOpacity=isDimmed?.35:isEditTarget?.25:1;
-    const layer=L.geoJSON(fGeom(f.id),{style:{color:fieldOutlineColor,fillColor:fieldFillColor,fillOpacity,weight,dashArray,opacity:fieldOpacity}});
+    var _sty={color:fieldOutlineColor,fillColor:fieldFillColor,fillOpacity,weight,dashArray,opacity:fieldOpacity};
+    if(_appsMode&&!_hasSpecialState){
+      // Applications layer: fields are neutral outlines; fields with no matching record are flagged
+      _sty=_hasApp?{color:'#FFFFFF',fillColor:'#FFFFFF',fillOpacity:0.02,weight:1.2,opacity:.7,dashArray:null}
+                  :{color:'#FFFFFF',fillColor:'#000000',fillOpacity:0.22,weight:1.2,opacity:.75,dashArray:'1,4'};
+    } else if(_appsMode&&isSelected){ _sty.fillOpacity=.12; }
+    const layer=L.geoJSON(fGeom(f.id),{style:_sty});
     layer._fid=f.id;
-    layer.on('click',(e)=>{
-      L.DomEvent.stopPropagation(e); // prevent map click deselect handler from firing
-      if(e.originalEvent.shiftKey||mapSelectMode){
-        toggleMapSelect(f.id);
-        return;
-      }
-      // If fields already selected and no modifier, just toggle this one too
-      if(mapSelectedFids.size>0){
-        toggleMapSelect(f.id);
-        return;
-      }
-      onMapFieldClick(f.id);
-    });
+    layer.on('click',_onFieldClick);
     // Tooltip — when filtering, show the filtered crop and just the matching planting's acres. When not filtering, show all crops on the field.
     var _tipCrop=displayCrop||(_fldCrops.length?_fldCrops.join(' + '):'No crop');
     var _tipAc=fAc(f);
@@ -5042,6 +5546,7 @@ function renderMapFields(){
     }
     layer.bindTooltip(`<b>${f.name}</b>${f.alias?'<br><i>'+f.alias+'</i>':''}<br><small>${_tipCrop} · ${_tipAc}ac</small>`,{sticky:true,className:'leaflet-tooltip'});
     fieldLayerGroup.addLayer(layer);
+    if(_appsMode||_fieldsMode) return; // plantings + areas only on the Plantings layer
     // Treatment areas (field-level, not season-specific)
     (S.treatmentAreas||[]).filter(function(a){return a.fieldId===f.id&&a.geom&&(!a.season||a.season===S.curSeason);}).forEach(function(a){
       var _aIsSelected=curTreatmentAreaId===a.id;
@@ -5079,6 +5584,7 @@ function renderMapFields(){
       zoneLayerGroup.addLayer(zl);
     });
   });
+  if(_appsMode) _flushAppLayers(); else _renderAppCtl();
 }
 function refreshMapColors(){ renderMapFields(); }
 function refreshMapZones(){ renderMapFields(); }
@@ -5230,6 +5736,7 @@ function showMapPanel(fid){
       }
       ${_renderTreatmentAreaCards(fid)}
     </div>
+    ${_mpApplicationsSection(f)}
 
   `;
 }
@@ -8936,10 +9443,18 @@ function confirmBulkCrop(){
 }
 
 // ─── ASSIGN TO FIELD ───
-function openAssign(fid, preselPlantingId){
+function openAssign(fid, preselPlantingId, editFpId){
   var f=S.fields.find(function(x){return x.id===fid;}); if(!f)return;
+  var _efp=editFpId?S.fieldProgs.find(function(x){return x.id===editFpId;}):null;
   document.getElementById('asgn-fid').value=fid;
-  document.getElementById('asgn-notes').value='';
+  document.getElementById('asgn-fpid').value=_efp?_efp.id:'';
+  document.getElementById('asgn-notes').value=_efp?(_efp.notes||''):'';
+  document.getElementById('asgn-title').textContent=_efp?'Edit Application — '+f.name:'Assign Program — '+f.name;
+  document.getElementById('asgn-go').textContent=_efp?'Save':'Assign';
+  document.getElementById('asgn-status').value=_efp&&_efp.status==='applied'?'applied':'planned';
+  document.getElementById('asgn-date').value=(_efp&&_efp.appliedDate)||new Date().toISOString().slice(0,10);
+  document.getElementById('asgn-date-wrap').style.visibility=document.getElementById('asgn-status').value==='applied'?'visible':'hidden';
+  document.getElementById('asgn-custom-ac').value=_efp&&_efp.customAcres!=null?_efp.customAcres:'';
   // Default to this grower's programs
   var _f=S.fields.find(function(x){return x.id===fid;});
   document.getElementById('asgn-quickbuild-wrap').style.display='none';
@@ -8951,7 +9466,7 @@ function openAssign(fid, preselPlantingId){
   pList.innerHTML=plantings.length
     ? plantings.map(function(p){
         var col=cropColor(p.crop||'')||p.color||'#888';
-        var chk=preselPlantingId===p.id?' checked':'';
+        var chk=(preselPlantingId===p.id||(_efp&&(_efp.plantingIds||[]).indexOf(p.id)>=0))?' checked':'';
         return '<label style="display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer">'
           +'<input type="checkbox" name="asgn-p" value="'+p.id+'"'+chk+' onchange="asgnUpdateAcresPreview(document.getElementById(\'asgn-fid\').value)">'
           +'<span style="width:9px;height:9px;border-radius:50%;background:'+col+';flex-shrink:0"></span>'
@@ -8969,6 +9484,14 @@ function openAssign(fid, preselPlantingId){
     +areas.map(function(a){return '<option value="'+a.id+'">'+esc(a.name)+(a.acres?' ('+a.acres+' ac)':'')+'</option>';}).join('');
 
   var _sep=document.getElementById('asgn-separate'); if(_sep) _sep.checked=false;
+  if(_efp){
+    var _ps=document.getElementById('asgn-prog');
+    if(![..._ps.options].some(function(o){return o.value===_efp.programId;})) asgnPopulateProgs(null,'all');
+    _ps.value=_efp.programId;
+    if(_efp.treatmentAreaId) document.getElementById('asgn-area-sel').value=_efp.treatmentAreaId;
+    asgnSetScope(_efp.treatmentAreaId?'area':(_efp.plantingIds&&_efp.plantingIds.length)?'planting':(_efp.customAcres!=null&&_efp.customAcres!=='')?'acres':'field');
+    asgnUpdateAcresPreview(fid); openM('assign'); return;
+  }
   // Default scope
   asgnSetScope(preselPlantingId?'planting':'field');
   asgnUpdateAcresPreview(fid);
@@ -9069,7 +9592,7 @@ function aqbSave(){
 function asgnSetScope(scope){
   document.getElementById('asgn-scope').value=scope;
   var fid=document.getElementById('asgn-fid').value;
-  ['field','planting','area'].forEach(function(s){
+  ['field','planting','area','acres'].forEach(function(s){
     var btn=document.getElementById('asgn-scope-'+s);
     if(btn) btn.style.background=s===scope?'rgba(80,160,32,.25)':'';
     if(btn) btn.style.borderColor=s===scope?'var(--leaf)':'';
@@ -9079,6 +9602,7 @@ function asgnSetScope(scope){
   var aw=document.getElementById('asgn-scope-area-wrap');
   if(pw) pw.style.display=scope==='planting'?'':'none';
   if(aw) aw.style.display=scope==='area'?'':'none';
+  var cw=document.getElementById('asgn-scope-acres-wrap'); if(cw) cw.style.display=scope==='acres'?'':'none';
   asgnUpdateAcresPreview(fid);
 }
 
@@ -9101,7 +9625,10 @@ function asgnUpdateAcresPreview(fid){
   } else if(scope==='area'){
     var asel=document.getElementById('asgn-area-sel');
     var area=asel&&asel.value?(S.treatmentAreas||[]).find(function(a){return a.id===asel.value;}):null;
-    msg=area?'Treatment area: '+esc(area.name)+' — '+(area.acres||'?')+' ac':'Select or draw a treatment area above';
+    msg=area?'Custom area: '+area.name+' — '+(area.acres||'?')+' ac':'Select, draw or import a custom area above';
+  } else if(scope==='acres'){
+    var _ca=parseFloat(document.getElementById('asgn-custom-ac').value);
+    msg=isNaN(_ca)?'Enter the acres covered':'Covers '+_ca.toFixed(1)+' of '+fAc(f).toFixed(1)+' ac (no map shape)';
   }
   el.textContent=msg;
 }
@@ -9133,6 +9660,22 @@ function assignProg(){
     if(!asel||!asel.value){alert('Select or draw a treatment area.');return;}
     treatmentAreaId=asel.value;
   }
+  var _customAc=null;
+  if(scope==='acres'){ _customAc=parseFloat(document.getElementById('asgn-custom-ac').value); if(isNaN(_customAc)||_customAc<=0){alert('Enter the acres covered.');return;} _customAc=_r1(_customAc); }
+  var _st=document.getElementById('asgn-status').value, _dt=document.getElementById('asgn-date').value;
+  var _editId=document.getElementById('asgn-fpid').value;
+  if(_editId){
+    var _e=S.fieldProgs.find(function(x){return x.id===_editId;});
+    if(_e){
+      pushUndo('Edit application');
+      _e.programId=pid; _e.plantingIds=plantingIds; _e.treatmentAreaId=treatmentAreaId; _e.notes=document.getElementById('asgn-notes').value;
+      if(_customAc!=null) _e.customAcres=_customAc; else delete _e.customAcres;
+      _e.status=_st; if(_st==='applied') _e.appliedDate=_dt||new Date().toISOString().slice(0,10); else delete _e.appliedDate;
+      save(); closeM('assign'); renderFieldDetail(fid); renderPlan(); renderPrograms(); renderMapFields();
+      if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
+      return;
+    }
+  }
 
   pushUndo('Add program');
   var _sepEl=document.getElementById('asgn-separate');
@@ -9144,8 +9687,11 @@ function assignProg(){
     treatmentAreaId:treatmentAreaId, // treatment area ID, or null
     cropZoneId:null,                 // legacy field — no longer used
     vrtRates:{}});
+    var _n=S.fieldProgs[S.fieldProgs.length-1];
+    if(_customAc!=null) _n.customAcres=_customAc;
+    if(_st==='applied'){ _n.status='applied'; _n.appliedDate=_dt||new Date().toISOString().slice(0,10); }
   });
-  save(); closeM('assign'); renderFieldDetail(fid); renderPlan(); renderPrograms();
+  save(); closeM('assign'); renderFieldDetail(fid); renderPlan(); renderPrograms(); renderMapFields();
   if(curFid===fid&&!document.getElementById('mapPanel').classList.contains('hidden')) showMapPanel(fid);
 }
 
@@ -10493,6 +11039,7 @@ function fieldThumbSvg(fid, size){
 
 // Global acresForFP — used by products, products-byprog, prog-tracker
 function acresForFP(f,fp){
+  if(fp.customAcres!=null&&fp.customAcres!==''&&!isNaN(+fp.customAcres)) return +fp.customAcres;
   if(fp.treatmentAreaId){var ta=(S.treatmentAreas||[]).find(function(x){return x.id===fp.treatmentAreaId;});return ta?+ta.acres||0:+fAc(f)||0;}
   if(fp.plantingIds&&fp.plantingIds.length){return fp.plantingIds.reduce(function(sum,pid){var p=S.plantings.find(function(x){return x.id===pid;});return sum+(p?+p.acres||0:0);},0);}
   if(fp.cropZoneId){var cz=S.zones.find(function(x){return x.id===fp.cropZoneId;});if(cz)return +cz.acres||0;}
@@ -10812,7 +11359,7 @@ function generateReport(){
     fields.forEach(f=>{
       S.fieldProgs.filter(fp=>fp.fieldId===f.id&&fp.season===season&&fpStatusOk(fp)&&fpProgOk(fp)).forEach(fp=>{
         const pr=S.programs.find(p=>p.id===fp.programId); if(!pr)return;
-        const fAc=acresForFP(f,fp);
+        const _fpAcL=acresForFP(f,fp);
         // Blend: one total-rate entry
         if(pr.type==='fert-blend'){
           // Use VRT zone rates if set, otherwise use blend total
@@ -10822,9 +11369,9 @@ function generateReport(){
           const _fac2=+(fAc(f)||0);
           const _fps2=fp.plantingIds&&fp.plantingIds.length?(S.plantings||[]).find(function(p){return fp.plantingIds.includes(p.id);}):null;
           const _proRate2=_fps2&&_fac2>0?Math.min(1,(+(_fps2.acres||_fac2))/_fac2):1;
-          // Scale zone-based qty to fAc when smart-fallback returns planting acres but zones use full field acres
+          // Scale zone-based qty to _fpAcL when smart-fallback returns planting acres but zones use full field acres
           const _tZoneAc2=(f.vrtZoneDefs||[]).reduce((s,z)=>s+(+(z.acres||0)),0);
-          const _vrtScaleProd=(_proRate2===1&&_tZoneAc2>0&&fAc>0)?fAc/_tZoneAc2:1;
+          const _vrtScaleProd=(_proRate2===1&&_tZoneAc2>0&&_fpAcL>0)?_fpAcL/_tZoneAc2:1;
           // Per-ingredient breakdown for reports
           (pr.ingredients||[]).forEach(function(ing){
             const vrtR=fp.vrtRates||{};
@@ -10862,11 +11409,11 @@ function generateReport(){
                 qty+=ingPct*zBlend*zAc;
               });
               qty*=_vrtScaleProd;
-            } else { qty=_ingIsFo?(+ing.rate||0)*fAc:ingPct*defaultTotal*fAc; }
+            } else { qty=_ingIsFo?(+ing.rate||0)*_fpAcL:ingPct*defaultTotal*_fpAcL; }
             const costPu=+(ing.cu||0);
             const hasVrtData=vrtDefs2.length&&Object.keys(blendZR).length;
             if(!totals[key])totals[key]={name:nm,unit:ing.unit,type:pr.type,rate:+ing.rate||0,acres:0,qty:0,cost:0,fields:[],fromBlend:pr.name,hasVrt:false};
-            totals[key].acres+=fAc; totals[key].qty+=qty; totals[key].cost+=costPu*(+ing.rate||0)*fAc; totals[key].fields.push(f.name);
+            totals[key].acres+=_fpAcL; totals[key].qty+=qty; totals[key].cost+=costPu*(+ing.rate||0)*_fpAcL; totals[key].fields.push(f.name);
             if(hasVrtData) totals[key].hasVrt=true;
           });
           // Also keep blend total row — MUST use identical logic to ingredient path above
@@ -10888,10 +11435,10 @@ function generateReport(){
             ?(f.vrtZoneDefs||[]).reduce(function(s,z){var zSum=0;(pr.ingredients||[]).forEach(function(ing2){var ik2=ing2.productId||ing2.id;var ir2=(fp.vrtRates&&fp.vrtRates[ik2])||{};var zr2=_blendZLookup(ir2,z);zSum+=(zr2!==null?zr2:(+ing2.rate||0));});return s+zSum*(+(z.acres||0))*_pr2;},0)
             :Object.keys(fp.vrtRates&&fp.vrtRates['__blend__']||{}).length
             ?(f.vrtZoneDefs||[]).reduce(function(s,z){var r=_blendZLookup(fp.vrtRates['__blend__'],z);if(r===null)r=defaultTotal;return s+(+r)*(+(z.acres||0))*_pr2;},0)
-            :defaultTotal*fAc)*_vrtScaleProd;
+            :defaultTotal*_fpAcL)*_vrtScaleProd;
           if(!totals[blendKey])totals[blendKey]={name:pr.name+' (blend)',unit,type:pr.type,rate:defaultTotal,acres:0,qty:0,cost:0,fields:[],isBlend:true};
           // Use same acres as ingredient path for consistency
-          totals[blendKey].acres+=fAc;
+          totals[blendKey].acres+=_fpAcL;
           totals[blendKey].qty+=blendTotal2;
           totals[blendKey].fields.push(f.name);
         } else {
@@ -10905,17 +11452,17 @@ function generateReport(){
             let _ingQty=0;
             if(_ingVrtR&&_ingVrtDefs.length&&Object.keys(_ingVrtR).length){
               const _ingZoneTotAc=_ingVrtDefs.reduce((s,z)=>s+(+(z.acres||0)),0);
-              const _ingVrtScale=_ingZoneTotAc>0&&fAc>0?fAc/_ingZoneTotAc:1;
+              const _ingVrtScale=_ingZoneTotAc>0&&_fpAcL>0?_fpAcL/_ingZoneTotAc:1;
               _ingVrtDefs.forEach(function(z){
                 const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);
                 const zr=_ingVrtR[zn]!==undefined?+_ingVrtR[zn]:(_ingVrtR[String(zn)]!==undefined?+_ingVrtR[String(zn)]:(_ingVrtR[z.num]!==undefined?+_ingVrtR[z.num]:+ing.rate||0));
                 _ingQty+=zr*zAc;
               });
               _ingQty*=_ingVrtScale;
-            } else { _ingQty=getFPRate(fp,ing)*fAc; }
+            } else { _ingQty=getFPRate(fp,ing)*_fpAcL; }
             if(!totals[key])totals[key]={name,unit:ing.unit,type:pr.type,rate:getFPRate(fp,ing),acres:0,qty:0,cost:0,fields:[],hasVrt:!!(_ingVrtR&&Object.keys(_ingVrtR).length)};
-            totals[key].acres+=fAc; totals[key].qty+=_ingQty;
-            totals[key].cost+=(+(ing.cu||0))*getFPRate(fp,ing)*fAc; totals[key].fields.push(f.name);
+            totals[key].acres+=_fpAcL; totals[key].qty+=_ingQty;
+            totals[key].cost+=(+(ing.cu||0))*getFPRate(fp,ing)*_fpAcL; totals[key].fields.push(f.name);
             if(_ingVrtR&&Object.keys(_ingVrtR).length) totals[key].hasVrt=true;
           });
         }
@@ -11069,7 +11616,7 @@ function generateReport(){
           (pr.ingredients||[]).forEach(ing=>{
             const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null;
             const nm=prod?prod.name:ing.product||'?';
-            const key=nm+'||'+ing.unit; const fAc=acresForFP(f,fp);
+            const key=nm+'||'+ing.unit; const _fpAcL=acresForFP(f,fp);
             if(!ingTotals[key])ingTotals[key]={name:nm,unit:ing.unit,rate:+ing.rate||0,qty:0,ac:0};
             // VRT-weighted qty for seed
             const _ingKeyBP=ing.productId||ing.id||'';
@@ -11079,8 +11626,8 @@ function generateReport(){
             if(_ingVrtBP&&_vdBP.length&&Object.keys(_ingVrtBP).length){
               _vdBP.forEach(function(z){const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);const zr=_ingVrtBP[zn]!==undefined?+_ingVrtBP[zn]:(_ingVrtBP[String(zn)]!==undefined?+_ingVrtBP[String(zn)]:(+ing.rate||0));_ingQtyBP+=zr*zAc;});
               ingTotals[key].hasVrt=true;
-            } else { _ingQtyBP=(+ing.rate||0)*fAc; }
-            ingTotals[key].qty+=_ingQtyBP; ingTotals[key].ac+=fAc;
+            } else { _ingQtyBP=(+ing.rate||0)*_fpAcL; }
+            ingTotals[key].qty+=_ingQtyBP; ingTotals[key].ac+=_fpAcL;
           });
         });
         rows=Object.values(ingTotals).map(it=>{
@@ -11185,7 +11732,7 @@ function generateReport(){
       const _ptFieldRows=_ptFps.map(function(fp){
         const f=S.fields.find(x=>x.id===fp.fieldId); if(!f) return null;
         const g=S.growers.find(x=>x.id===f.growerId),fm=S.farms.find(x=>x.id===f.farmId);
-        const fAc=acresForFP(f,fp);
+        const _fpAcL=acresForFP(f,fp);
         const vrtDefs4=f.vrtZoneDefs&&f.vrtZoneDefs.length?f.vrtZoneDefs:[];
         const blendZR4=(function(){
           var _isSeedPr=_ptProg.type==='seed'||_ptProg.type==='seed-corn'||_ptProg.type==='seed-soy';
@@ -11203,10 +11750,10 @@ function generateReport(){
           return fp.vrtRates&&fp.vrtRates['__blend__']||{};
         })();
         const defTotal=_ptIngTotal(_ptProg);
-        // Scale factor: if VRT zone acres don't match fAc (e.g. planting-scoped fAc vs full-field zones),
-        // scale all zone-based qty calculations to fAc so columns reconcile.
+        // Scale factor: if VRT zone acres don't match _fpAcL (e.g. planting-scoped _fpAcL vs full-field zones),
+        // scale all zone-based qty calculations to _fpAcL so columns reconcile.
         const tAc4=vrtDefs4.length&&Object.keys(blendZR4).length?vrtDefs4.reduce((s,z)=>s+(+(z.acres||0)),0):0;
-        const _vrtScale=(tAc4>0&&fAc>0)?fAc/tAc4:1;
+        const _vrtScale=(tAc4>0&&_fpAcL>0)?_fpAcL/tAc4:1;
         // Per-ingredient qty
         (_ptProg.ingredients||[]).forEach(function(ing){
           const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null;
@@ -11217,9 +11764,9 @@ function generateReport(){
           if(vrtDefs4.length&&Object.keys(blendZR4).length){
             vrtDefs4.forEach(function(z){const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);const zBlend=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);qty+=pct*zBlend*zAc;});
             qty*=_vrtScale;
-          } else qty=pct*defTotal*fAc;
+          } else qty=pct*defTotal*_fpAcL;
           if(!_ptCompTotals[key]) _ptCompTotals[key]={name:nm,unit:ing.unit,qty:0,acres:0};
-          _ptCompTotals[key].qty+=qty; _ptCompTotals[key].acres+=fAc;
+          _ptCompTotals[key].qty+=qty; _ptCompTotals[key].acres+=_fpAcL;
         });
         // Field avg blend rate — zone-weighted; stays as true rate, blendQty scaled separately by _vrtScale
         let fieldBlendAvg=defTotal;
@@ -11229,7 +11776,7 @@ function generateReport(){
         const unit4=(_ptProg.ingredients&&_ptProg.ingredients[0]&&_ptProg.ingredients[0].unit)||'lb/ac';
         const blendQty=vrtDefs4.length&&Object.keys(blendZR4).length
           ?vrtDefs4.reduce((s,z)=>{const zn=_zoneEffectiveNum(z);const zr=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);return s+zr*(+(z.acres||0));},0)*_vrtScale
-          :defTotal*fAc;
+          :defTotal*_fpAcL;
         // Store per-component qtys for dynamic recompute
         const _compData=(function(){var _cmap={};(_ptProg.ingredients||[]).forEach(function(ing){
             const prod=ing.productId?S.products.find(p=>p.id===ing.productId):null;
@@ -11239,10 +11786,10 @@ function generateReport(){
             if(vrtDefs4.length&&Object.keys(blendZR4).length){
               vrtDefs4.forEach(function(z){const zn=_zoneEffectiveNum(z);const zAc=+(z.acres||0);const zBlend=blendZR4[zn]!==undefined?+blendZR4[zn]:(blendZR4[String(zn)]!==undefined?+blendZR4[String(zn)]:defTotal);_cqty+=pct*zBlend*zAc;});
               _cqty*=_vrtScale;
-            } else { _cqty=pct*defTotal*fAc; }
+            } else { _cqty=pct*defTotal*_fpAcL; }
             _cmap[nm+'||'+ing.unit]=_cqty.toFixed(2);
           });return Object.entries(_cmap).map(function(e){return e[0]+'='+e[1];}).join(';');})();
-        return {f,g,fm,fp,fAc,fieldBlendAvg,blendQty,unit:unit4,compData:_compData};
+        return {f,g,fm,fp,fAc:_fpAcL,fieldBlendAvg,blendQty,unit:unit4,compData:_compData};
       }).filter(Boolean).sort((a,b)=>(a.g?a.g.name:'').localeCompare(b.g?b.g.name:'')!==0?(a.g?a.g.name:'').localeCompare(b.g?b.g.name:''):(a.f.name.localeCompare(b.f.name)));
       const _ptTotalAc=_ptFieldRows.reduce((s,r)=>s+r.fAc,0);
       const _ptTotalQty=_ptFieldRows.reduce((s,r)=>s+r.blendQty,0);
@@ -12567,14 +13114,14 @@ function _fdFixPlantingScopes(apply){
     if(fp.treatmentAreaId||fp.cropZoneId) return;
     var f=S.fields.find(function(x){return x.id===fp.fieldId;});
     if(!f) return;
-    var fAc=+fAc(f)||0;
+    var _fAcL=+fAc(f)||0;
     var season=fp.season||S.curSeason;
     var ps=(S.plantings||[]).filter(function(p){
       return p.fieldId===f.id&&p.season===season&&p.crop&&p.crop!=='Unknown';
     });
     if(ps.length!==1) return;
     var pAc=+ps[0].acres||0;
-    if(pAc<=0||pAc>=fAc-0.5) return;
+    if(pAc<=0||pAc>=_fAcL-0.5) return;
     var prog=S.programs.find(function(x){return x.id===fp.programId;})||{name:'?'};
     fixed.push({fp:fp,planting:ps[0],field:f,prog:prog,season:season});
   });
